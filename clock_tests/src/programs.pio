@@ -1,0 +1,7 @@
+; Toggles the output pin. This exposes the clock (after division) for debugging.
+
+.program toggle_pin
+.wrap_target
+    set pins, 1  ; Set pin high
+    set pins, 0  ; Set pin low
+.wrap
