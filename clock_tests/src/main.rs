@@ -9,6 +9,7 @@ pub static BOOT2_FIRMWARE: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
 use core::{cell::RefCell, u32};
 
 use crate::pac::interrupt;
+use cortex_m::asm;
 use critical_section::Mutex;
 use defmt::{error, info, warn};
 use defmt_rtt as _;
@@ -37,13 +38,22 @@ use rp_pico::{
 pub const EXTERNAL_XTAL_FREQ_HZ: HertzU32 = HertzU32::from_raw(12_000_000u32);
 
 pub const SYS_PLL_CONFIG_100MHZ: PLLConfig = PLLConfig {
-    vco_freq: HertzU32::MHz(1200),
+    vco_freq: HertzU32::MHz(1600),
     refdiv: 1,
     post_div1: 6,
     post_div2: 2,
 };
 
 const SYST_RVR: u32 = 0xffffff;
+
+fn interpolate_frequency(value: u32) -> f32 {
+    let freq_100mhz = 1e8;
+    let value_100mhz = 3697.5; // Emperical
+
+    let constant = freq_100mhz * value_100mhz;
+
+    constant / value as f32
+}
 
 #[entry]
 fn main() -> ! {
@@ -55,39 +65,31 @@ fn main() -> ! {
 
     let xosc = setup_xosc_blocking(pac.XOSC, EXTERNAL_XTAL_FREQ_HZ).unwrap();
 
-    // let pll_sys = setup_pll_blocking(
-    //     pac.PLL_SYS,
-    //     xosc.operating_frequency(),
-    //     SYS_PLL_CONFIG_100MHZ,
-    //     &mut clocks,
-    //     &mut pac.RESETS,
-    // )
-    // .unwrap();
+    let pll_sys = setup_pll_blocking(
+        pac.PLL_SYS,
+        xosc.operating_frequency(),
+        SYS_PLL_CONFIG_100MHZ,
+        &mut clocks,
+        &mut pac.RESETS,
+    )
+    .unwrap();
 
-    // let fbdiv = pll_sys.device.fbdiv_int.read().fbdiv_int().bits();
+    clocks
+        .system_clock
+        .configure_clock(&pll_sys, pll_sys.get_freq())
+        .unwrap();
+
     info!(
-        "fbdiv_int={}",
-        pac.PLL_SYS.fbdiv_int.read().fbdiv_int().bits()
-    );
-    pac.PLL_SYS
-        .fbdiv_int
-        .write(|w| unsafe { w.fbdiv_int().bits(101) });
-    info!(
-        "fbdiv_int={}",
-        pac.PLL_SYS.fbdiv_int.read().fbdiv_int().bits()
+        "Configured system clock at frequency: {:?}MHz",
+        pll_sys.get_freq().to_Hz() as f32 / 1e6
     );
 
-    // let start_freq = HertzU32::MHz(100);
+    let pll = pll_sys.free();
 
-    // clocks
-    //     .system_clock
-    //     .configure_clock(&pll_sys, pll_sys.get_freq())
-    //     .unwrap();
-
-    // info!(
-    //     "Configured system clock at frequency: {:?}MHz",
-    //     start_freq.to_Hz() as f32 / 1e6
-    // );
+    info!(
+        "current feedback divider: {}",
+        pll.fbdiv_int.read().fbdiv_int().bits()
+    );
 
     let mut delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
 
@@ -169,20 +171,17 @@ fn main() -> ! {
     let mut drive_pin = pins.gpio18.into_push_pull_output();
     drive_pin.set_high().unwrap();
 
-    let mut i = 0;
-
-    let mut fbdivs = [100, 105, 100, 95, 90, 80].iter().cycle();
+    let mut fbdivs = [101, 102, 103, 104].iter().cycle();
 
     loop {
-        for _ in 0..100000000 {
-            pac.PLL_SYS.fbdiv_int.read().fbdiv_int().bits();
+        for _ in 0..30000000 {
+            asm::nop();
         }
 
         let &new_fbdiv = fbdivs.next().unwrap();
         info!("Set new feedback divider: {}", new_fbdiv);
 
-        pac.PLL_SYS
-            .fbdiv_int
+        pll.fbdiv_int
             .write(|w| unsafe { w.fbdiv_int().bits(new_fbdiv) });
     }
 }
@@ -227,7 +226,12 @@ fn IO_IRQ_BANK0() {
         ppb.syst_cvr
             .write(|w| unsafe { w.current().bits(0xffffff) });
 
-        info!("syst diff={}", 0xffffff - syst_value);
+        let ticks_taken = 0xffffff - syst_value;
+        info!(
+            "syst diff={} (~{}MHz)",
+            ticks_taken,
+            interpolate_frequency(ticks_taken) as f32 / 1e6
+        );
 
         clk_senser.clear_interrupt(Interrupt::EdgeHigh);
     }
