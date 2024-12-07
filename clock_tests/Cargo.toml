@@ -19,6 +19,7 @@ fugit = "0.3.7"
 rp2040-boot2 = "0.2.1"
 pio-proc = "0.2.2"
 pio = "0.2.1"
+critical-section = "1.2.0"
 
 [features]
 benchmark = []

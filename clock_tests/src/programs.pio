@@ -5,3 +5,11 @@
     set pins, 1  ; Set pin high
     set pins, 0  ; Set pin low
 .wrap
+
+.program toggle_pin_slow
+.wrap_target
+    set pins, 1  ; Set pin high
+    nop [31] ; can add more to slow down the clock even more
+    set pins, 0  ; Set pin low
+    nop [31]
+.wrap
