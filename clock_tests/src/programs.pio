@@ -1,5 +1,14 @@
-; Toggles the output pin. This exposes the clock (after division) for debugging.
+.program pitopi_tx ; TODO: check on scope, and do RX
+.side_set 1
+.wrap_target
+    set x, 0xaa55aa55
+tx:
+    out pins, 1             side 0 [1]
+    pull ifempty noblock    side 1 
+    jmp tx
+.wrap
 
+; Toggles the output pin. This exposes the clock (after division, at half rate) for debugging.
 .program toggle_pin
 .wrap_target
     set pins, 1  ; Set pin high

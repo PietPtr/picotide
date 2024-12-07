@@ -100,6 +100,8 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
+    // TODO: look into the ring oscillator for more frequency control options?
+
     let exposed_clock_pin = pins.gpio10.into_function::<FunctionPio0>();
 
     let (mut pio, sm0, sm1, sm2, sm3) = pac.PIO0.split(&mut pac.RESETS);
