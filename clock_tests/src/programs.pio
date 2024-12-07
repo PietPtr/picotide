@@ -6,10 +6,25 @@
     set pins, 0  ; Set pin low
 .wrap
 
+; Toggle the output pin every 512 cycles, essentially dividing the clock by 1024 (?)
 .program toggle_pin_slow
-.wrap_target
-    set pins, 1  ; Set pin high
-    nop [31] ; can add more to slow down the clock even more
-    set pins, 0  ; Set pin low
-    nop [31]
+.wrap_target        ; cycle count
+    set pins, 1     ; 1
+    nop [30]        ; 32
+    nop [31]        ; 64
+    nop [31]        ; 96
+    nop [31]        ; 128
+    nop [31]        ; 160
+    nop [31]        ; 192
+    nop [31]        ; 224
+    nop [31]        ; 256
+    set pins, 0     ; 257
+    nop [30]        ; 288
+    nop [31]        ; 320
+    nop [31]        ; 352
+    nop [31]        ; 384
+    nop [31]        ; 416
+    nop [31]        ; 448
+    nop [31]        ; 480
+    nop [31]        ; 512
 .wrap

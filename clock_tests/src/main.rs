@@ -10,9 +10,9 @@ use core::{cell::RefCell, u32};
 
 use crate::pac::interrupt;
 use critical_section::Mutex;
-use defmt::*;
+use defmt::{error, info, warn};
 use defmt_rtt as _;
-use embedded_hal::digital::v2::OutputPin;
+use embedded_hal::digital::v2::{InputPin, OutputPin, StatefulOutputPin, ToggleableOutputPin};
 use fugit::HertzU32;
 use panic_probe as _;
 use pio::Program;
@@ -23,8 +23,8 @@ use rp_pico::{
         clocks::{Clock, ClockSource, ClocksManager},
         gpio::{
             self,
-            bank0::{Gpio20, Gpio25},
-            FunctionPio0, FunctionSioOutput, Interrupt, Pin, PullNone,
+            bank0::{Gpio19, Gpio20, Gpio25},
+            FunctionPio0, FunctionSioInput, FunctionSioOutput, Interrupt, Pin, PullDown, PullNone,
         },
         pio::{PIOBuilder, PIOExt, PinDir},
         pll::{setup_pll_blocking, PLLConfig},
@@ -55,26 +55,39 @@ fn main() -> ! {
 
     let xosc = setup_xosc_blocking(pac.XOSC, EXTERNAL_XTAL_FREQ_HZ).unwrap();
 
-    let pll_sys = setup_pll_blocking(
-        pac.PLL_SYS,
-        xosc.operating_frequency(),
-        SYS_PLL_CONFIG_100MHZ,
-        &mut clocks,
-        &mut pac.RESETS,
-    )
-    .unwrap();
+    // let pll_sys = setup_pll_blocking(
+    //     pac.PLL_SYS,
+    //     xosc.operating_frequency(),
+    //     SYS_PLL_CONFIG_100MHZ,
+    //     &mut clocks,
+    //     &mut pac.RESETS,
+    // )
+    // .unwrap();
 
-    let start_freq = HertzU32::MHz(60);
-
-    clocks
-        .system_clock
-        .configure_clock(&pll_sys, start_freq)
-        .unwrap();
-
+    // let fbdiv = pll_sys.device.fbdiv_int.read().fbdiv_int().bits();
     info!(
-        "Configured system clock at frequency: {:?}MHz",
-        start_freq.to_Hz() as f32 / 1e6
+        "fbdiv_int={}",
+        pac.PLL_SYS.fbdiv_int.read().fbdiv_int().bits()
     );
+    pac.PLL_SYS
+        .fbdiv_int
+        .write(|w| unsafe { w.fbdiv_int().bits(101) });
+    info!(
+        "fbdiv_int={}",
+        pac.PLL_SYS.fbdiv_int.read().fbdiv_int().bits()
+    );
+
+    // let start_freq = HertzU32::MHz(100);
+
+    // clocks
+    //     .system_clock
+    //     .configure_clock(&pll_sys, pll_sys.get_freq())
+    //     .unwrap();
+
+    // info!(
+    //     "Configured system clock at frequency: {:?}MHz",
+    //     start_freq.to_Hz() as f32 / 1e6
+    // );
 
     let mut delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
 
@@ -105,12 +118,12 @@ fn main() -> ! {
 
     // pac.PPB.syst_csr.write(|w| w.clksource().set_bit());
     // pac.PPB.syst_csr.write(|w| w.enable().set_bit());
-    // TODO: Make sure it is NOT set to sysclk
-    pac.PPB.syst_csr.write(|w| unsafe { w.bits(0x5) });
+
+    pac.PPB.syst_csr.write(|w| unsafe { w.bits(0b001) });
     pac.PPB.syst_rvr.write(|w| unsafe { w.bits(SYST_RVR) });
 
     info!(
-        "\nclksource={} ({})\nenabled={}\ntickint={}\nrvr={:#x}",
+        "\nclksource={} ({})\nenabled={}\ntickint={}\nrvr={:#x}\nsyst_calib: noref={} skew={} tenms={:x}",
         if pac.PPB.syst_csr.read().clksource().bit() {
             "processor"
         } else {
@@ -120,9 +133,16 @@ fn main() -> ! {
         pac.PPB.syst_csr.read().enable().bit_is_set(),
         pac.PPB.syst_csr.read().tickint().bit(),
         pac.PPB.syst_rvr.read().bits(),
+        pac.PPB.syst_calib.read().noref().bit(),
+        pac.PPB.syst_calib.read().skew().bit(),
+        pac.PPB.syst_calib.read().tenms().bits(),
     );
 
-    let senser_pin = pins.gpio20.reconfigure();
+    pac.PPB
+        .syst_cvr
+        .write(|w| unsafe { w.current().bits(0xfff) });
+
+    let senser_pin: SenserPin = pins.gpio20.into_pull_down_input();
     senser_pin.set_interrupt_enabled(Interrupt::EdgeHigh, true);
 
     critical_section::with(|cs| {
@@ -130,27 +150,9 @@ fn main() -> ! {
         GLOBAL_PPB.borrow(cs).replace(Some(pac.PPB));
     });
 
-    // let points = [
-    //     pac.PPB.syst_cvr.read().current().bits(),
-    //     pac.PPB.syst_cvr.read().current().bits(),
-    //     pac.PPB.syst_cvr.read().current().bits(),
-    //     pac.PPB.syst_cvr.read().current().bits(),
-    //     pac.PPB.syst_cvr.read().current().bits(),
-    //     pac.PPB.syst_cvr.read().current().bits(),
-    //     pac.PPB.syst_cvr.read().current().bits(),
-    //     pac.PPB.syst_cvr.read().current().bits(),
-    // ];
-
-    // pac.PPB
-    //     .syst_cvr
-    //     .write(|w| unsafe { w.current().bits(0xffffff) });
-
-    // let after_reset = pac.PPB.syst_cvr.read().current().bits();
-
-    // info!("{:x}\n{:x}", points, after_reset);
-
-    // delay.delay_ms(1000);
-    // info!("Setting clock higher.");
+    unsafe {
+        pac::NVIC::unmask(pac::Interrupt::IO_IRQ_BANK0);
+    }
 
     // clocks
     //     .system_clock
@@ -161,18 +163,31 @@ fn main() -> ! {
     //     "Freq should now be: {}MHz",
     //     clocks.system_clock.get_freq().to_Hz() as f32 / 1e6
     // );
+    let test_pin: Pin<gpio::bank0::Gpio19, gpio::FunctionSio<gpio::SioInput>, PullDown> =
+        pins.gpio19.into_pull_down_input();
+
+    let mut drive_pin = pins.gpio18.into_push_pull_output();
+    drive_pin.set_high().unwrap();
+
+    let mut i = 0;
+
+    let mut fbdivs = [100, 105, 100, 95, 90, 80].iter().cycle();
+
     loop {
+        for _ in 0..100000000 {
+            pac.PLL_SYS.fbdiv_int.read().fbdiv_int().bits();
+        }
 
-        // info!("Setting clock lower.");
+        let &new_fbdiv = fbdivs.next().unwrap();
+        info!("Set new feedback divider: {}", new_fbdiv);
 
-        // clocks
-        //     .system_clock
-        //     .configure_clock(&pll_sys, start_freq - HertzU32::MHz(1))
-        //     .unwrap();
+        pac.PLL_SYS
+            .fbdiv_int
+            .write(|w| unsafe { w.fbdiv_int().bits(new_fbdiv) });
     }
 }
 
-type SenserPin = Pin<Gpio20, FunctionSioOutput, PullNone>;
+type SenserPin = Pin<Gpio20, FunctionSioInput, PullDown>;
 
 static GLOBAL_PINS: Mutex<RefCell<Option<SenserPin>>> = Mutex::new(RefCell::new(None));
 static GLOBAL_PPB: Mutex<RefCell<Option<PPB>>> = Mutex::new(RefCell::new(None));
@@ -195,8 +210,6 @@ fn IO_IRQ_BANK0() {
         })
     }
 
-    info!("IO_IRQ_BANK0 fired.");
-
     let Some(clk_senser) = CLK_SENSER.as_mut() else {
         info!("No clk senser pin available");
         return;
@@ -214,7 +227,7 @@ fn IO_IRQ_BANK0() {
         ppb.syst_cvr
             .write(|w| unsafe { w.current().bits(0xffffff) });
 
-        info!("syst_value={}", syst_value);
+        info!("syst diff={}", 0xffffff - syst_value);
 
         clk_senser.clear_interrupt(Interrupt::EdgeHigh);
     }
