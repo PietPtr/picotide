@@ -110,6 +110,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "controllers"
+version = "0.1.0"
+dependencies = [
+ "rp-pico",
+]
+
+[[package]]
 name = "cortex-m"
 version = "0.7.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"

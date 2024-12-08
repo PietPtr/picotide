@@ -4,4 +4,4 @@ resolver = "2"
 
 members = [
     "clock_tests"
-]
+, "controllers"]

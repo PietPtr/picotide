@@ -22,3 +22,9 @@ So the clock divisors on the PIO determines how much time there is for 1/2/3.
 **As producer consumer**: On the other core user logic can run that reads from / writes to the SIO FIFO. All these user cores will run at the same clock speed due to the control algorithm, but if everything is a producer/consumer anyway and expects to sometimes wait for a fifo to clear/fill that's not of much use.
 
 **As a tightly syncronized core**: If compiling on the _assumption_ that the user cores run at the same logical frequency is possible interesting scheduling is possible. It probably means that some user logic should be nop-padded. This is possible by setting a strict cycle budget per sync/data word coming in from the PIOs. The user logic should be driven / run in an environment that counts cycles. That's possible with the `syst_cvr` counter.
+
+## Clock experiments results
+
+The PLL is easy to control through its registers (specifically fbdiv), and these can be changed at runtime to change the frequency. The resolution is dependent on how much the ref clock is divided. Using settings to get a 100MHz clock, incrementing the fbdiv by 1 results in a 1MHz change. 
+
+For more precise clock control, consider an SI5351A (0.77 cents) on a custom PCB.
