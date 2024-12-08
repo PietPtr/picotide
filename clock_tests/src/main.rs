@@ -6,17 +6,17 @@
 #[used]
 pub static BOOT2_FIRMWARE: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
 
-use core::{cell::RefCell, u32};
+use core::{cell::RefCell, ops::RangeInclusive, u32};
 
 use crate::pac::interrupt;
 use cortex_m::asm;
 use critical_section::Mutex;
+#[allow(unused_imports)]
 use defmt::{error, info, warn};
 use defmt_rtt as _;
-use embedded_hal::digital::v2::{InputPin, OutputPin, StatefulOutputPin, ToggleableOutputPin};
+use embedded_hal::digital::v2::OutputPin;
 use fugit::HertzU32;
 use panic_probe as _;
-use pio::Program;
 use pio_proc::pio_file;
 use rp_pico::{
     entry,
@@ -24,8 +24,9 @@ use rp_pico::{
         clocks::{Clock, ClockSource, ClocksManager},
         gpio::{
             self,
-            bank0::{Gpio19, Gpio20, Gpio25},
-            FunctionPio0, FunctionSioInput, FunctionSioOutput, Interrupt, Pin, PullDown, PullNone,
+            bank0::{Gpio19, Gpio20},
+            FunctionPio0, FunctionSio, FunctionSioInput, Interrupt, Pin, PullDown, PullNone,
+            SioOutput,
         },
         pio::{PIOBuilder, PIOExt, PinDir},
         pll::{setup_pll_blocking, PLLConfig},
@@ -55,6 +56,10 @@ fn interpolate_frequency(value: u32) -> f32 {
     constant / value as f32
 }
 
+/// Measures frequency of the sysclk by dividing a clock down via PIO, exposing that to pin 10,
+/// and measuring the time between interrupts on pin 20. Connect pin 10 to 20 with a jumper wire to make it work.
+/// Can be improved by using the internal frequency counter in the clocking module of the rp2040.
+/// Pin 11 exposes the system clock at half rate through a PIO program.
 #[entry]
 fn main() -> ! {
     let mut pac = pac::Peripherals::take().unwrap();
@@ -91,8 +96,6 @@ fn main() -> ! {
         pll.fbdiv_int.read().fbdiv_int().bits()
     );
 
-    let mut delay = cortex_m::delay::Delay::new(core.SYST, clocks.system_clock.freq().to_Hz());
-
     let pins = gpio::Pins::new(
         pac.IO_BANK0,
         pac.PADS_BANK0,
@@ -100,28 +103,37 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    // TODO: look into the ring oscillator for more frequency control options?
+    let exposed_slow_clock_pin = pins.gpio10.into_function::<FunctionPio0>();
+    let exposed_fast_clock_pin = pins.gpio11.into_function::<FunctionPio0>();
 
-    let exposed_clock_pin = pins.gpio10.into_function::<FunctionPio0>();
+    let (mut pio, sm0, sm1, _, _) = pac.PIO0.split(&mut pac.RESETS);
 
-    let (mut pio, sm0, sm1, sm2, sm3) = pac.PIO0.split(&mut pac.RESETS);
-
+    // Set up slow sys clk exposing pin
     let toggle_pin_program =
         pio_file!("src/programs.pio", select_program("toggle_pin_slow")).program;
     let toggle_pin = pio.install(&toggle_pin_program).unwrap();
 
     let (mut sm0, _rx0, _tx0) = PIOBuilder::from_program(toggle_pin)
-        .set_pins(exposed_clock_pin.id().num, 1)
+        .set_pins(exposed_slow_clock_pin.id().num, 1)
         .clock_divisor_fixed_point(0, 0)
         .build(sm0);
 
-    sm0.set_pindirs([(exposed_clock_pin.id().num, PinDir::Output)]);
+    sm0.set_pindirs([(exposed_slow_clock_pin.id().num, PinDir::Output)]);
     sm0.start();
 
-    info!("Start.");
+    // Set up fast sys clk exposing pin
+    let toggle_pin_program = pio_file!("src/programs.pio", select_program("toggle_pin")).program;
+    let toggle_pin = pio.install(&toggle_pin_program).unwrap();
 
-    // pac.PPB.syst_csr.write(|w| w.clksource().set_bit());
-    // pac.PPB.syst_csr.write(|w| w.enable().set_bit());
+    let (mut sm1, _rx0, _tx0) = PIOBuilder::from_program(toggle_pin)
+        .set_pins(exposed_fast_clock_pin.id().num, 1)
+        .clock_divisor_fixed_point(5, 0)
+        .build(sm1);
+
+    sm1.set_pindirs([(exposed_fast_clock_pin.id().num, PinDir::Output)]);
+    sm1.start();
+
+    info!("Start.");
 
     pac.PPB.syst_csr.write(|w| unsafe { w.bits(0b001) });
     pac.PPB.syst_rvr.write(|w| unsafe { w.bits(SYST_RVR) });
@@ -158,33 +170,34 @@ fn main() -> ! {
         pac::NVIC::unmask(pac::Interrupt::IO_IRQ_BANK0);
     }
 
-    // clocks
-    //     .system_clock
-    //     .configure_clock(&pll_sys, start_freq + HertzU32::MHz(10))
-    //     .unwrap();
-
-    // info!(
-    //     "Freq should now be: {}MHz",
-    //     clocks.system_clock.get_freq().to_Hz() as f32 / 1e6
-    // );
-    let test_pin: Pin<gpio::bank0::Gpio19, gpio::FunctionSio<gpio::SioInput>, PullDown> =
-        pins.gpio19.into_pull_down_input();
+    // Pin to attach a probe to to trigger on fbdiv changes
+    let mut test_pin: Pin<Gpio19, FunctionSio<SioOutput>, PullNone> = pins.gpio19.reconfigure();
+    test_pin.set_low().unwrap();
 
     let mut drive_pin = pins.gpio18.into_push_pull_output();
     drive_pin.set_high().unwrap();
 
-    let mut fbdivs = [101, 102, 103, 104].iter().cycle();
+    const MIN_FBDIV: u16 = 50;
+    const MAX_FBDIV: u16 = 150;
+    const FBDIV_RANGE: RangeInclusive<u16> = MIN_FBDIV..=MAX_FBDIV;
+    let mut fbdivs = FBDIV_RANGE.chain(FBDIV_RANGE.rev()).cycle();
 
     loop {
-        for _ in 0..30000000 {
+        for _ in 0..1000000 {
             asm::nop();
         }
 
-        let &new_fbdiv = fbdivs.next().unwrap();
+        let new_fbdiv = fbdivs.next().unwrap();
         info!("Set new feedback divider: {}", new_fbdiv);
 
         pll.fbdiv_int
             .write(|w| unsafe { w.fbdiv_int().bits(new_fbdiv) });
+
+        test_pin.set_high().unwrap();
+        for _ in 0..50 {
+            asm::nop();
+        }
+        test_pin.set_low().unwrap();
     }
 }
 
