@@ -612,6 +612,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pitopi"
+version = "0.1.0"
+dependencies = [
+ "cortex-m",
+ "cortex-m-rt",
+ "critical-section",
+ "defmt",
+ "defmt-rtt",
+ "embedded-hal",
+ "fugit",
+ "log",
+ "panic-probe",
+ "pio",
+ "pio-proc",
+ "rp-pico",
+ "rp2040-boot2",
+]
+
+[[package]]
 name = "precomputed-hash"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

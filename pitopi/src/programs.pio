@@ -1,0 +1,18 @@
+
+.program pitopi_tx
+.side_set 1
+.wrap_target
+    set x, 0b00001          side 0
+tx:
+    out pins, 1             side 0 [1]
+    pull ifempty noblock    side 1
+    jmp tx                  side 1
+.wrap
+
+; TODO: wire up and test
+.program pitopi_rx
+.wrap_target
+    wait 1 pin 1            ; wait until a rising edge
+    in pins, 1              ; and shift in whatever is on the input
+    push iffull noblock
+.wrap

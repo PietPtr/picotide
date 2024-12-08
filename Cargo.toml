@@ -3,5 +3,7 @@
 resolver = "2"
 
 members = [
-    "clock_tests"
-, "controllers"]
+    "controllers", 
+    "clock_tests", 
+    "pitopi",
+    ]

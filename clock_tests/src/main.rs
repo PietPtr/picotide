@@ -251,14 +251,3 @@ fn IO_IRQ_BANK0() {
         clk_senser.clear_interrupt(Interrupt::EdgeHigh);
     }
 }
-
-// ; TODO: check on scope, and do RX
-// .program pitopi_tx
-// .side_set 1
-// .wrap_target
-//     set x, 0xaa55aa55
-// tx:
-//     out pins, 1             side 0 [1]
-//     pull ifempty noblock    side 1
-//     jmp tx
-// .wrap
