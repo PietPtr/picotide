@@ -16,6 +16,7 @@ use defmt::{error, info, warn};
 use defmt_rtt as _;
 use embedded_hal::digital::v2::OutputPin;
 use fugit::HertzU32;
+use heapless::Vec;
 use panic_probe as _;
 use pio_proc::pio_file;
 use rp_pico::{
@@ -24,7 +25,7 @@ use rp_pico::{
         clocks::{Clock, ClockSource, ClocksManager},
         gpio::{
             self,
-            bank0::{Gpio19, Gpio20},
+            bank0::{Gpio18, Gpio19, Gpio20},
             FunctionPio0, FunctionSio, FunctionSioInput, Interrupt, Pin, PullDown, PullNone,
             SioOutput,
         },
@@ -85,8 +86,8 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    let pitopi_tx_data = pins.gpio10.into_function::<FunctionPio0>();
-    let pitopi_tx_clk = pins.gpio11.into_function::<FunctionPio0>();
+    let pitopi_tx_data = pins.gpio20.into_function::<FunctionPio0>();
+    let pitopi_tx_clk = pins.gpio21.into_function::<FunctionPio0>();
 
     let (mut pio, sm0, sm1, _, _) = pac.PIO0.split(&mut pac.RESETS);
 
@@ -97,24 +98,93 @@ fn main() -> ! {
     let (mut sm0, _rx0, mut tx0) = PIOBuilder::from_program(toggle_pin)
         .out_pins(pitopi_tx_data.id().num, 1)
         .side_set_pin_base(pitopi_tx_clk.id().num)
-        .clock_divisor_fixed_point(10, 0)
+        .clock_divisor_fixed_point(1, 0)
         .build(sm0);
 
     sm0.set_pindirs([
         (pitopi_tx_data.id().num, PinDir::Output),
         (pitopi_tx_clk.id().num, PinDir::Output),
     ]);
-    sm0.start();
+    let sm0 = sm0.start();
+
+    let pitopi_rx_data: Pin<Gpio18, FunctionPio0, PullDown> =
+        pins.gpio18.into_function::<FunctionPio0>();
+    let pitopi_rx_clk: Pin<Gpio19, FunctionPio0, PullDown> =
+        pins.gpio19.into_function::<FunctionPio0>();
+
+    let pitopi_rx_program = pio_file!("src/programs.pio", select_program("pitopi_rx")).program;
+    let pitopi_rx_program = pio.install(&pitopi_rx_program).unwrap();
+
+    info!(
+        "rx wrap target {}, offset {}",
+        pitopi_rx_program.wrap_target(),
+        pitopi_rx_program.offset()
+    );
+
+    let (mut sm1, mut rx1, _tx1) = PIOBuilder::from_program(pitopi_rx_program)
+        .in_pin_base(pitopi_rx_data.id().num)
+        .clock_divisor_fixed_point(1, 0)
+        .build(sm1);
+
+    sm1.set_pindirs([
+        (pitopi_rx_data.id().num, PinDir::Input),
+        (pitopi_rx_clk.id().num, PinDir::Input),
+    ]);
 
     info!("Start.");
 
-    loop {
-        if !tx0.is_full() {
-            tx0.write(0xaaaa_aaaa);
-        }
+    let sm1 = sm1.start();
 
-        for _ in 0..100000 {
+    // tx0.write(0xaaaa_aaaa);
+    // tx0.write(0x0000_0000);
+    // tx0.write(0x0000_0000);
+    // tx0.write(0xaaaa_aaaa);
+    // tx0.write(0xffff_ffff);
+    // tx0.write(0xffff_ffff);
+    // tx0.write(0x0000_0000);
+
+    // let mut read_data = Vec::<_, 128>::new();
+
+    // for i in 0..128 {
+    //     let data = rx1.read();
+    //     if let Some(data) = data {
+    //         read_data.push((i, data)).unwrap();
+    //     }
+    // }
+
+    // for (i, data) in read_data {
+    //     info!(
+    //         "\n       ................................\ndata = {:b} 0x{:x} ({})",
+    //         data, data, i
+    //     );
+    // }
+
+    // let mut addresses = [0; 128];
+
+    // for i in 0..addresses.len() {
+    //     addresses[i] = sm1.instruction_address();
+    // }
+
+    // info!("{}", addresses);
+
+    info!("{:?}", rx1.read());
+
+    let mut i: u32 = 1337;
+
+    loop {
+        // tx0.write(0xa000_0000);
+        tx0.write(i);
+        for _ in 0..1000000 {
             asm::nop();
         }
+        if let Some(data) = rx1.read() {
+            // let data = data.reverse_bits();
+            info!("0x{:x} == 0x{:x} {}", i, data, i == data);
+        }
+        for _ in 0..1000000 {
+            asm::nop();
+        }
+
+        i = i.overflowing_mul(1337).0;
     }
 }
