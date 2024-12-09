@@ -271,29 +271,19 @@ fn main() -> ! {
         tx2.write(i);
         tx3.write(i);
 
-        for _ in 0..45 {
+        for _ in 0..4500 {
             asm::nop();
         }
+
         if let Some(data) = rx0.read() {
-            if i != data {
-                warn!("0x{:x} == 0x{:x} {}", i, data, i == data);
-            }
+            info!("0x{:x}", data);
         }
-        if let Some(data) = rx1.read() {
-            if i != data {
-                warn!("0x{:x} == 0x{:x} {}", i, data, i == data);
-            }
-        }
-        if let Some(data) = rx2.read() {
-            if i != data {
-                warn!("0x{:x} == 0x{:x} {}", i, data, i == data);
-            }
-        }
-        if let Some(data) = rx3.read() {
-            if i != data {
-                warn!("0x{:x} == 0x{:x} {}", i, data, i == data);
-            }
-        }
+
+        // if let Some(data) = rx1.read() {
+        //     if i != data {
+        //         warn!("0x{:x} == 0x{:x} {}", i, data, i == data);
+        //     }
+        // }
 
         i = i.overflowing_mul(1337).0;
     }
