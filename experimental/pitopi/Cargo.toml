@@ -2,7 +2,7 @@
 name = "pitopi"
 version = "0.1.0"
 edition = "2021"
-description = "Demo and test bed of pico to pico communication over I2S."
+description = "Demo and test bed of pico to pico communication over custom PIO based protocol."
 
 # TODO: turn this into a library crate
 

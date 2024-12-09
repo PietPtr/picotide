@@ -9,7 +9,8 @@ pub static BOOT2_FIRMWARE: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
 use core::{cell::RefCell, ops::RangeInclusive, u32};
 
 use crate::pac::interrupt;
-use cortex_m::asm;
+use cortex_m::{asm, peripheral::syst::SystClkSource};
+use cortex_m_rt::exception;
 use critical_section::Mutex;
 #[allow(unused_imports)]
 use defmt::{error, info, warn};
@@ -25,16 +26,16 @@ use rp_pico::{
         clocks::{Clock, ClockSource, ClocksManager},
         gpio::{
             self,
-            bank0::{Gpio18, Gpio19, Gpio20},
-            FunctionPio0, FunctionSio, FunctionSioInput, Interrupt, Pin, PullDown, PullNone,
-            SioOutput,
+            bank0::{Gpio16, Gpio17, Gpio18, Gpio19, Gpio20},
+            FunctionPio0, FunctionPio1, FunctionSio, FunctionSioInput, Interrupt, Pin, PullDown,
+            PullNone, SioOutput,
         },
-        pio::{PIOBuilder, PIOExt, PinDir},
+        pio::{PIOBuilder, PIOExt, PinDir, Rx, Tx, ValidStateMachine, SM0, SM1, SM2, SM3},
         pll::{setup_pll_blocking, PLLConfig},
         sio::Sio,
         xosc::setup_xosc_blocking,
     },
-    pac::{self, PPB},
+    pac::{self, CLOCKS, PIO0, PIO1, PPB},
 };
 
 pub const EXTERNAL_XTAL_FREQ_HZ: HertzU32 = HertzU32::from_raw(12_000_000u32);
@@ -46,10 +47,11 @@ pub const SYS_PLL_CONFIG_100MHZ: PLLConfig = PLLConfig {
     post_div2: 2,
 };
 
-/// Measures frequency of the sysclk by dividing a clock down via PIO, exposing that to pin 10,
-/// and measuring the time between interrupts on pin 20. Connect pin 10 to 20 with a jumper wire to make it work.
-/// Can be improved by using the internal frequency counter in the clocking module of the rp2040.
-/// Pin 11 exposes the system clock at half rate through a PIO program.
+/// The divisor of how many CPU cycles should pass before a new word is sent to all neigboring nodes.
+pub const CLOCKS_PER_SYNC_WORD: u32 = 1024;
+
+// TODO: instantiate 4 RX and 4 TXs
+// TODO: test between two seperate pico's instead of loopback.
 #[entry]
 fn main() -> ! {
     let mut pac = pac::Peripherals::take().unwrap();
@@ -86,105 +88,238 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    let pitopi_tx_data = pins.gpio20.into_function::<FunctionPio0>();
-    let pitopi_tx_clk = pins.gpio21.into_function::<FunctionPio0>();
+    let (mut tx_pio, tx_sm0, tx_sm1, tx_sm2, tx_sm3) = pac.PIO1.split(&mut pac.RESETS);
+    let (mut rx_pio, rx_sm0, rx_sm1, rx_sm2, rx_sm3) = pac.PIO0.split(&mut pac.RESETS);
 
-    let (mut pio, sm0, sm1, _, _) = pac.PIO0.split(&mut pac.RESETS);
+    // Set up 4 TX channels
+    let tx0_data = pins.gpio0.into_function::<FunctionPio1>();
+    let tx0_clk = pins.gpio1.into_function::<FunctionPio1>();
+    let tx0_word = pins.gpio2.into_function::<FunctionPio1>();
 
-    // Set up TX
+    let tx1_data = pins.gpio6.into_function::<FunctionPio1>();
+    let tx1_clk = pins.gpio7.into_function::<FunctionPio1>();
+    let tx1_word = pins.gpio8.into_function::<FunctionPio1>();
+
+    let tx2_data = pins.gpio12.into_function::<FunctionPio1>();
+    let tx2_clk = pins.gpio13.into_function::<FunctionPio1>();
+    let tx2_word = pins.gpio14.into_function::<FunctionPio1>();
+
+    let tx3_data = pins.gpio18.into_function::<FunctionPio1>();
+    let tx3_clk = pins.gpio19.into_function::<FunctionPio1>();
+    let tx3_word = pins.gpio20.into_function::<FunctionPio1>();
+
     let pitopi_tx_program = pio_file!("src/programs.pio", select_program("pitopi_tx")).program;
-    let toggle_pin = pio.install(&pitopi_tx_program).unwrap();
+    let tx_program = tx_pio.install(&pitopi_tx_program).unwrap();
 
-    let (mut sm0, _rx0, mut tx0) = PIOBuilder::from_program(toggle_pin)
-        .out_pins(pitopi_tx_data.id().num, 1)
-        .side_set_pin_base(pitopi_tx_clk.id().num)
-        .clock_divisor_fixed_point(1, 0)
-        .build(sm0);
+    let (mut tx_sm0, _rx0, mut tx0) = PIOBuilder::from_program(unsafe { tx_program.share() })
+        .out_pins(tx0_data.id().num, 1)
+        .side_set_pin_base(tx0_clk.id().num)
+        .clock_divisor_fixed_point(4, 0)
+        .build(tx_sm0);
 
-    sm0.set_pindirs([
-        (pitopi_tx_data.id().num, PinDir::Output),
-        (pitopi_tx_clk.id().num, PinDir::Output),
+    tx_sm0.set_pindirs([
+        (tx0_data.id().num, PinDir::Output),
+        (tx0_clk.id().num, PinDir::Output),
+        (tx0_word.id().num, PinDir::Output),
     ]);
-    let sm0 = sm0.start();
 
-    let pitopi_rx_data: Pin<Gpio18, FunctionPio0, PullDown> =
-        pins.gpio18.into_function::<FunctionPio0>();
-    let pitopi_rx_clk: Pin<Gpio19, FunctionPio0, PullDown> =
-        pins.gpio19.into_function::<FunctionPio0>();
+    tx_sm0.start();
+
+    let (mut tx_sm1, _rx1, mut tx1) = PIOBuilder::from_program(unsafe { tx_program.share() })
+        .out_pins(tx1_data.id().num, 1)
+        .side_set_pin_base(tx1_clk.id().num)
+        .clock_divisor_fixed_point(4, 0)
+        .build(tx_sm1);
+
+    tx_sm1.set_pindirs([
+        (tx1_data.id().num, PinDir::Output),
+        (tx1_clk.id().num, PinDir::Output),
+        (tx1_word.id().num, PinDir::Output),
+    ]);
+
+    tx_sm1.start();
+
+    let (mut tx_sm2, _rx2, mut tx2) = PIOBuilder::from_program(unsafe { tx_program.share() })
+        .out_pins(tx2_data.id().num, 1)
+        .side_set_pin_base(tx2_clk.id().num)
+        .clock_divisor_fixed_point(4, 0)
+        .build(tx_sm2);
+
+    tx_sm2.set_pindirs([
+        (tx2_data.id().num, PinDir::Output),
+        (tx2_clk.id().num, PinDir::Output),
+        (tx2_word.id().num, PinDir::Output),
+    ]);
+
+    tx_sm2.start();
+
+    let (mut tx_sm3, _rx3, mut tx3) = PIOBuilder::from_program(unsafe { tx_program.share() })
+        .out_pins(tx3_data.id().num, 1)
+        .side_set_pin_base(tx3_clk.id().num)
+        .clock_divisor_fixed_point(4, 0)
+        .build(tx_sm3);
+
+    tx_sm3.set_pindirs([
+        (tx3_data.id().num, PinDir::Output),
+        (tx3_clk.id().num, PinDir::Output),
+        (tx3_word.id().num, PinDir::Output),
+    ]);
+
+    tx_sm3.start();
+
+    let rx0_data = pins.gpio3.into_function::<FunctionPio0>();
+    let rx0_clk = pins.gpio4.into_function::<FunctionPio0>();
+    let rx0_word = pins.gpio5.into_function::<FunctionPio0>();
+
+    let rx1_data = pins.gpio9.into_function::<FunctionPio0>();
+    let rx1_clk = pins.gpio10.into_function::<FunctionPio0>();
+    let rx1_word = pins.gpio11.into_function::<FunctionPio0>();
+
+    let rx2_data = pins.gpio15.into_function::<FunctionPio0>();
+    let rx2_clk = pins.gpio16.into_function::<FunctionPio0>();
+    let rx2_word = pins.gpio17.into_function::<FunctionPio0>();
+
+    let rx3_data = pins.gpio21.into_function::<FunctionPio0>();
+    let rx3_clk = pins.gpio22.into_function::<FunctionPio0>();
+    let rx3_word = pins.gpio23.into_function::<FunctionPio0>();
 
     let pitopi_rx_program = pio_file!("src/programs.pio", select_program("pitopi_rx")).program;
-    let pitopi_rx_program = pio.install(&pitopi_rx_program).unwrap();
+    let rx_program = rx_pio.install(&pitopi_rx_program).unwrap();
 
-    info!(
-        "rx wrap target {}, offset {}",
-        pitopi_rx_program.wrap_target(),
-        pitopi_rx_program.offset()
-    );
-
-    let (mut sm1, mut rx1, _tx1) = PIOBuilder::from_program(pitopi_rx_program)
-        .in_pin_base(pitopi_rx_data.id().num)
+    let (mut rx_sm0, mut rx0, _tx0) = PIOBuilder::from_program(unsafe { rx_program.share() })
+        .in_pin_base(rx0_data.id().num)
         .clock_divisor_fixed_point(1, 0)
-        .build(sm1);
+        .build(rx_sm0);
 
-    sm1.set_pindirs([
-        (pitopi_rx_data.id().num, PinDir::Input),
-        (pitopi_rx_clk.id().num, PinDir::Input),
+    rx_sm0.set_pindirs([
+        (rx0_data.id().num, PinDir::Input),
+        (rx0_clk.id().num, PinDir::Input),
+        (rx0_word.id().num, PinDir::Input),
     ]);
+
+    rx_sm0.start();
+
+    let (mut rx_sm1, mut rx1, _tx1) = PIOBuilder::from_program(unsafe { rx_program.share() })
+        .in_pin_base(rx1_data.id().num)
+        .clock_divisor_fixed_point(1, 0)
+        .build(rx_sm1);
+
+    rx_sm1.set_pindirs([
+        (rx1_data.id().num, PinDir::Input),
+        (rx1_clk.id().num, PinDir::Input),
+        (rx1_word.id().num, PinDir::Input),
+    ]);
+
+    rx_sm1.start();
+
+    let (mut rx_sm2, mut rx2, _tx2) = PIOBuilder::from_program(unsafe { rx_program.share() })
+        .in_pin_base(rx2_data.id().num)
+        .clock_divisor_fixed_point(1, 0)
+        .build(rx_sm2);
+
+    rx_sm2.set_pindirs([
+        (rx2_data.id().num, PinDir::Input),
+        (rx2_clk.id().num, PinDir::Input),
+        (rx2_word.id().num, PinDir::Input),
+    ]);
+
+    rx_sm2.start();
+
+    let (mut rx_sm3, mut rx3, _tx3) = PIOBuilder::from_program(unsafe { rx_program.share() })
+        .in_pin_base(rx3_data.id().num)
+        .clock_divisor_fixed_point(1, 0)
+        .build(rx_sm3);
+
+    rx_sm3.set_pindirs([
+        (rx3_data.id().num, PinDir::Input),
+        (rx3_clk.id().num, PinDir::Input),
+        (rx3_word.id().num, PinDir::Input),
+    ]);
+
+    rx_sm3.start();
 
     info!("Start.");
 
-    let sm1 = sm1.start();
+    let mut systick = core.SYST;
+    systick.set_reload(CLOCKS_PER_SYNC_WORD - 1);
+    systick.clear_current();
+    systick.enable_counter();
+    systick.set_clock_source(SystClkSource::Core);
+    // systick.enable_interrupt();
 
-    // tx0.write(0xaaaa_aaaa);
-    // tx0.write(0x0000_0000);
-    // tx0.write(0x0000_0000);
-    // tx0.write(0xaaaa_aaaa);
-    // tx0.write(0xffff_ffff);
-    // tx0.write(0xffff_ffff);
-    // tx0.write(0x0000_0000);
-
-    // let mut read_data = Vec::<_, 128>::new();
-
-    // for i in 0..128 {
-    //     let data = rx1.read();
-    //     if let Some(data) = data {
-    //         read_data.push((i, data)).unwrap();
-    //     }
-    // }
-
-    // for (i, data) in read_data {
-    //     info!(
-    //         "\n       ................................\ndata = {:b} 0x{:x} ({})",
-    //         data, data, i
-    //     );
-    // }
-
-    // let mut addresses = [0; 128];
-
-    // for i in 0..addresses.len() {
-    //     addresses[i] = sm1.instruction_address();
-    // }
-
-    // info!("{}", addresses);
-
-    info!("{:?}", rx1.read());
+    info!(
+        "\nclksource={} ({})\nenabled={}\ntickint={}\nrvr={:#x}\nsyst_calib: noref={} skew={} tenms={:x}",
+        if pac.PPB.syst_csr.read().clksource().bit() {
+            "processor"
+        } else {
+            "refclock"
+        },
+        pac.PPB.syst_csr.read().clksource().bit(),
+        pac.PPB.syst_csr.read().enable().bit_is_set(),
+        pac.PPB.syst_csr.read().tickint().bit(),
+        pac.PPB.syst_rvr.read().bits(),
+        pac.PPB.syst_calib.read().noref().bit(),
+        pac.PPB.syst_calib.read().skew().bit(),
+        pac.PPB.syst_calib.read().tenms().bits(),
+    );
 
     let mut i: u32 = 1337;
 
     loop {
-        // tx0.write(0xa000_0000);
         tx0.write(i);
-        for _ in 0..1000000 {
+        tx1.write(i);
+        tx2.write(i);
+        tx3.write(i);
+
+        for _ in 0..45 {
             asm::nop();
+        }
+        if let Some(data) = rx0.read() {
+            if i != data {
+                warn!("0x{:x} == 0x{:x} {}", i, data, i == data);
+            }
         }
         if let Some(data) = rx1.read() {
-            // let data = data.reverse_bits();
-            info!("0x{:x} == 0x{:x} {}", i, data, i == data);
+            if i != data {
+                warn!("0x{:x} == 0x{:x} {}", i, data, i == data);
+            }
         }
-        for _ in 0..1000000 {
-            asm::nop();
+        if let Some(data) = rx2.read() {
+            if i != data {
+                warn!("0x{:x} == 0x{:x} {}", i, data, i == data);
+            }
+        }
+        if let Some(data) = rx3.read() {
+            if i != data {
+                warn!("0x{:x} == 0x{:x} {}", i, data, i == data);
+            }
         }
 
         i = i.overflowing_mul(1337).0;
     }
+}
+
+#[exception]
+fn SysTick() {
+    info!("systick expired;");
+}
+
+struct TideChannelControl<F, const N: usize> {
+    frequency_controller: F,
+    rxs: Rxs,
+    txs: Txs,
+}
+
+struct Txs {
+    tx0: Tx<(PIO1, SM0)>,
+    tx1: Tx<(PIO1, SM1)>,
+    tx2: Tx<(PIO1, SM2)>,
+    tx3: Tx<(PIO1, SM3)>,
+}
+
+struct Rxs {
+    rx0: Rx<(PIO0, SM0)>,
+    rx1: Rx<(PIO0, SM1)>,
+    rx2: Rx<(PIO0, SM2)>,
+    rx3: Rx<(PIO0, SM3)>,
 }
