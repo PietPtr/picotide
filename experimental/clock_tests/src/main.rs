@@ -63,7 +63,7 @@ fn interpolate_frequency(value: u32) -> f32 {
 #[entry]
 fn main() -> ! {
     let mut pac = pac::Peripherals::take().unwrap();
-    let core = pac::CorePeripherals::take().unwrap();
+    let _core = pac::CorePeripherals::take().unwrap();
     let sio = Sio::new(pac.SIO);
 
     let mut clocks = ClocksManager::new(pac.CLOCKS);

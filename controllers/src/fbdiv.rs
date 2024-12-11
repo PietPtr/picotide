@@ -1,5 +1,6 @@
 use core::ops::RangeInclusive;
 
+use fixed::types::I16F16;
 use rp_pico::pac::PLL_SYS;
 
 use crate::controller::FrequencyController;
@@ -9,12 +10,19 @@ use crate::controller::FrequencyController;
 /// system clock frequency.
 pub struct FbdivController {
     pll_sys: PLL_SYS,
-    scaler: i16,
+    scaler: I16F16,
+    fbdiv_internal: I16F16,
 }
 
 impl FbdivController {
-    pub fn new(pll_sys: PLL_SYS, scaler: i16) -> Self {
-        Self { pll_sys, scaler }
+    pub fn new(pll_sys: PLL_SYS, scaler: I16F16) -> Self {
+        let initial_fbdiv = pll_sys.fbdiv_int.read().fbdiv_int().bits();
+
+        Self {
+            pll_sys,
+            scaler,
+            fbdiv_internal: I16F16::from_num(initial_fbdiv),
+        }
     }
 
     pub fn read_fbdiv(&self) -> u16 {
@@ -42,10 +50,14 @@ impl<const N: usize, const B: usize> FrequencyController<N, B> for FbdivControll
         let half_full = (N * B) / 2;
         let total_level: usize = buffer_levels.iter().sum();
 
-        let adjust = if total_level > half_full { 1 } else { -1 };
+        let adjust = if total_level > half_full {
+            self.scaler
+        } else {
+            -self.scaler
+        };
 
-        let new_fbdiv = (self.read_fbdiv() as i32 + adjust) as u16;
+        self.fbdiv_internal += adjust;
 
-        self.write_fbdiv(new_fbdiv);
+        self.write_fbdiv(self.fbdiv_internal.round().int().to_bits() as u16);
     }
 }

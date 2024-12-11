@@ -1,0 +1,39 @@
+
+.program pitopi_tx_two_wire
+.side_set 1
+.wrap_target
+    set x, 0b00001          side 0
+tx:
+    out pins, 1             side 1
+    nop                     side 0
+    pull ifempty            side 0
+    jmp tx                  side 1
+.wrap
+
+.program pitopi_tx
+.side_set 2
+.wrap_target
+word:
+    set x, 31               side 0b00
+    pull ifempty            side 0b00
+tx:
+    out pins, 1             side 0b11
+    jmp x-- tx              side 0b10
+.wrap
+
+.program pitopi_rx
+.wrap_target
+    wait 1 pin 2            ; make sure the word line is high while reading a word
+    wait 1 pin 1
+    wait 0 pin 1            ; wait until a falling edge
+    in pins, 1              ; and shift in whatever is on the input
+    push iffull noblock
+.wrap
+
+; TODO: enable autopull / autopush?
+
+.program toggle_pin
+.wrap_target
+    set pins, 0b111  ; Set pin high
+    set pins, 0b000  ; Set pin low
+.wrap
