@@ -6,36 +6,30 @@
 #[used]
 pub static BOOT2_FIRMWARE: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
 
-use core::{cell::RefCell, ops::RangeInclusive, u32};
+use core::{cell::RefCell, u32};
 
-use crate::pac::interrupt;
-use cortex_m::{asm, peripheral::syst::SystClkSource};
+use controllers::{controller::FrequencyController, fbdiv::FbdivController};
+use cortex_m::peripheral::syst::SystClkSource;
 use cortex_m_rt::exception;
 use critical_section::Mutex;
 #[allow(unused_imports)]
 use defmt::{error, info, warn};
 use defmt_rtt as _;
-use embedded_hal::digital::v2::OutputPin;
 use fugit::HertzU32;
-use heapless::Vec;
+use heapless::{Deque, Vec};
 use panic_probe as _;
 use pio_proc::pio_file;
 use rp_pico::{
     entry,
     hal::{
         clocks::{Clock, ClockSource, ClocksManager},
-        gpio::{
-            self,
-            bank0::{Gpio16, Gpio17, Gpio18, Gpio19, Gpio20},
-            FunctionPio0, FunctionPio1, FunctionSio, FunctionSioInput, Interrupt, Pin, PullDown,
-            PullNone, SioOutput,
-        },
-        pio::{PIOBuilder, PIOExt, PinDir, Rx, Tx, ValidStateMachine, SM0, SM1, SM2, SM3},
+        gpio::{self, FunctionPio0, FunctionPio1},
+        pio::{PIOBuilder, PIOExt, PinDir, Rx, Tx, SM0, SM1, SM2, SM3},
         pll::{setup_pll_blocking, PLLConfig},
-        sio::Sio,
+        sio::{Sio, SioFifo},
         xosc::setup_xosc_blocking,
     },
-    pac::{self, CLOCKS, PIO0, PIO1, PPB},
+    pac::{self, PIO0, PIO1},
 };
 
 pub const EXTERNAL_XTAL_FREQ_HZ: HertzU32 = HertzU32::from_raw(12_000_000u32);
@@ -50,8 +44,6 @@ pub const SYS_PLL_CONFIG_100MHZ: PLLConfig = PLLConfig {
 /// The divisor of how many CPU cycles should pass before a new word is sent to all neigboring nodes.
 pub const CLOCKS_PER_SYNC_WORD: u32 = 1024;
 
-// TODO: instantiate 4 RX and 4 TXs
-// TODO: test between two seperate pico's instead of loopback.
 #[entry]
 fn main() -> ! {
     let mut pac = pac::Peripherals::take().unwrap();
@@ -62,7 +54,7 @@ fn main() -> ! {
 
     let xosc = setup_xosc_blocking(pac.XOSC, EXTERNAL_XTAL_FREQ_HZ).unwrap();
 
-    let pll_sys = setup_pll_blocking(
+    let locked_pll_sys = setup_pll_blocking(
         pac.PLL_SYS,
         xosc.operating_frequency(),
         SYS_PLL_CONFIG_100MHZ,
@@ -73,13 +65,15 @@ fn main() -> ! {
 
     clocks
         .system_clock
-        .configure_clock(&pll_sys, pll_sys.get_freq())
+        .configure_clock(&locked_pll_sys, locked_pll_sys.get_freq())
         .unwrap();
 
     info!(
         "Configured system clock at frequency: {:?}MHz",
-        pll_sys.get_freq().to_Hz() as f32 / 1e6
+        locked_pll_sys.get_freq().to_Hz() as f32 / 1e6
     );
+
+    let pll_sys = locked_pll_sys.free();
 
     let pins = gpio::Pins::new(
         pac.IO_BANK0,
@@ -101,7 +95,8 @@ fn main() -> ! {
     let tx1_word = pins.gpio8.into_function::<FunctionPio1>();
 
     let tx2_data = pins.gpio12.into_function::<FunctionPio1>();
-    let tx2_clk = pins.gpio13.into_function::<FunctionPio1>();
+    let tx2_clk: gpio::Pin<gpio::bank0::Gpio13, FunctionPio1, gpio::PullDown> =
+        pins.gpio13.into_function::<FunctionPio1>();
     let tx2_word = pins.gpio14.into_function::<FunctionPio1>();
 
     let tx3_data = pins.gpio18.into_function::<FunctionPio1>();
@@ -111,7 +106,7 @@ fn main() -> ! {
     let pitopi_tx_program = pio_file!("src/programs.pio", select_program("pitopi_tx")).program;
     let tx_program = tx_pio.install(&pitopi_tx_program).unwrap();
 
-    let (mut tx_sm0, _rx0, mut tx0) = PIOBuilder::from_program(unsafe { tx_program.share() })
+    let (mut tx_sm0, _rx0, tx0) = PIOBuilder::from_program(unsafe { tx_program.share() })
         .out_pins(tx0_data.id().num, 1)
         .side_set_pin_base(tx0_clk.id().num)
         .clock_divisor_fixed_point(4, 0)
@@ -125,7 +120,7 @@ fn main() -> ! {
 
     tx_sm0.start();
 
-    let (mut tx_sm1, _rx1, mut tx1) = PIOBuilder::from_program(unsafe { tx_program.share() })
+    let (mut tx_sm1, _rx1, tx1) = PIOBuilder::from_program(unsafe { tx_program.share() })
         .out_pins(tx1_data.id().num, 1)
         .side_set_pin_base(tx1_clk.id().num)
         .clock_divisor_fixed_point(4, 0)
@@ -139,7 +134,7 @@ fn main() -> ! {
 
     tx_sm1.start();
 
-    let (mut tx_sm2, _rx2, mut tx2) = PIOBuilder::from_program(unsafe { tx_program.share() })
+    let (mut tx_sm2, _rx2, tx2) = PIOBuilder::from_program(unsafe { tx_program.share() })
         .out_pins(tx2_data.id().num, 1)
         .side_set_pin_base(tx2_clk.id().num)
         .clock_divisor_fixed_point(4, 0)
@@ -153,7 +148,7 @@ fn main() -> ! {
 
     tx_sm2.start();
 
-    let (mut tx_sm3, _rx3, mut tx3) = PIOBuilder::from_program(unsafe { tx_program.share() })
+    let (mut tx_sm3, _rx3, tx3) = PIOBuilder::from_program(unsafe { tx_program.share() })
         .out_pins(tx3_data.id().num, 1)
         .side_set_pin_base(tx3_clk.id().num)
         .clock_divisor_fixed_point(4, 0)
@@ -186,7 +181,7 @@ fn main() -> ! {
     let pitopi_rx_program = pio_file!("src/programs.pio", select_program("pitopi_rx")).program;
     let rx_program = rx_pio.install(&pitopi_rx_program).unwrap();
 
-    let (mut rx_sm0, mut rx0, _tx0) = PIOBuilder::from_program(unsafe { rx_program.share() })
+    let (mut rx_sm0, rx0, _tx0) = PIOBuilder::from_program(unsafe { rx_program.share() })
         .in_pin_base(rx0_data.id().num)
         .clock_divisor_fixed_point(1, 0)
         .build(rx_sm0);
@@ -199,7 +194,7 @@ fn main() -> ! {
 
     rx_sm0.start();
 
-    let (mut rx_sm1, mut rx1, _tx1) = PIOBuilder::from_program(unsafe { rx_program.share() })
+    let (mut rx_sm1, rx1, _tx1) = PIOBuilder::from_program(unsafe { rx_program.share() })
         .in_pin_base(rx1_data.id().num)
         .clock_divisor_fixed_point(1, 0)
         .build(rx_sm1);
@@ -212,7 +207,7 @@ fn main() -> ! {
 
     rx_sm1.start();
 
-    let (mut rx_sm2, mut rx2, _tx2) = PIOBuilder::from_program(unsafe { rx_program.share() })
+    let (mut rx_sm2, rx2, _tx2) = PIOBuilder::from_program(unsafe { rx_program.share() })
         .in_pin_base(rx2_data.id().num)
         .clock_divisor_fixed_point(1, 0)
         .build(rx_sm2);
@@ -225,7 +220,7 @@ fn main() -> ! {
 
     rx_sm2.start();
 
-    let (mut rx_sm3, mut rx3, _tx3) = PIOBuilder::from_program(unsafe { rx_program.share() })
+    let (mut rx_sm3, rx3, _tx3) = PIOBuilder::from_program(unsafe { rx_program.share() })
         .in_pin_base(rx3_data.id().num)
         .clock_divisor_fixed_point(1, 0)
         .build(rx_sm3);
@@ -239,6 +234,25 @@ fn main() -> ! {
     rx_sm3.start();
 
     info!("Start.");
+
+    let sio_fifo = sio.fifo;
+
+    let tide_fifos = [
+        TideFifo::new(),
+        TideFifo::new(),
+        TideFifo::new(),
+        TideFifo::new(),
+    ];
+
+    critical_section::with(|cs| {
+        GLOBAL_CONTROL.borrow(cs).replace(Some(Control::new(
+            FbdivController::new(pll_sys, 1),
+            Rxs { rx0, rx1, rx2, rx3 },
+            Txs { tx0, tx1, tx2, tx3 },
+            sio_fifo,
+            tide_fifos,
+        )))
+    });
 
     let mut systick = core.SYST;
     systick.set_reload(CLOCKS_PER_SYNC_WORD - 1);
@@ -263,43 +277,131 @@ fn main() -> ! {
         pac.PPB.syst_calib.read().tenms().bits(),
     );
 
-    let mut i: u32 = 1337;
-
-    loop {
-        tx0.write(i);
-        tx1.write(i);
-        tx2.write(i);
-        tx3.write(i);
-
-        for _ in 0..4500 {
-            asm::nop();
-        }
-
-        if let Some(data) = rx0.read() {
-            info!("0x{:x}", data);
-        }
-
-        // if let Some(data) = rx1.read() {
-        //     if i != data {
-        //         warn!("0x{:x} == 0x{:x} {}", i, data, i == data);
-        //     }
-        // }
-
-        i = i.overflowing_mul(1337).0;
-    }
+    loop {}
 }
+
+type Control = TideChannelControl<FbdivController, 4, 16>;
+
+const GLOBAL_CONTROL: Mutex<RefCell<Option<Control>>> = Mutex::new(RefCell::new(None));
 
 #[exception]
 fn SysTick() {
-    info!("systick expired;");
+    static mut CONTROL: Option<Control> = None;
+
+    if CONTROL.is_none() {
+        critical_section::with(|cs| {
+            let _ = CONTROL.insert(GLOBAL_CONTROL.borrow(cs).take().unwrap());
+        });
+    }
+
+    if let Some(control) = CONTROL {
+        control.interrupt();
+    }
 }
 
-struct TideChannelControl<F, const N: usize> {
+/// Generic over the frequency controller F, the amount of neighbors N
+/// and the buffer size B.
+/// TODO: Generic N does not fully work as Rxs/Txs are hardcoded to size 4.
+/// TODO: make this a library
+struct TideChannelControl<F, const N: usize, const B: usize> {
     frequency_controller: F,
     rxs: Rxs,
     txs: Txs,
+    sio_fifo: SioFifo,
+    tide_fifos: [TideFifo<B>; N],
 }
 
+impl<F, const N: usize, const B: usize> TideChannelControl<F, N, B>
+where
+    F: FrequencyController<N, B>,
+{
+    pub fn new(
+        frequency_controller: F,
+        rxs: Rxs,
+        txs: Txs,
+        sio_fifo: SioFifo,
+        tide_fifos: [TideFifo<B>; N],
+    ) -> Self {
+        Self {
+            frequency_controller,
+            rxs,
+            txs,
+            sio_fifo,
+            tide_fifos,
+        }
+    }
+
+    /// All the logic to execute on a scheduled basis.
+    /// This function must be called _exactly_ every `CLOCKS_PER_SYNC_WORD` cycles.
+    /// All clocks should be set up such that the execution of this function takes fewer clocks than that
+    /// for its worst case execution path otherwise it cannot finish.
+    pub fn interrupt(&mut self) {
+        // Read user data from SIO FIFO
+        let user_word = self.sio_fifo.read();
+
+        // Send words on channel
+        let mut messages: [TideMessage; 4] = [
+            TideMessage::SyncMessage,
+            TideMessage::SyncMessage,
+            TideMessage::SyncMessage,
+            TideMessage::SyncMessage,
+        ];
+
+        if let Some(message) = user_word.map(|w| TideMessage::deserialize(w)) {
+            match message {
+                TideMessage::SyncMessage => panic!("unexpected"),
+                TideMessage::CommMessage { neighbor, data: _ } => {
+                    let neighbor = neighbor as usize;
+                    if (neighbor) < N {
+                        messages[neighbor] = message;
+                    } else {
+                        panic!("Invalid neigbor selected");
+                    }
+                }
+            }
+        }
+
+        self.txs.write(messages);
+
+        // Read rx fifos and put on tide fifos
+        let messages = self.rxs.read();
+
+        for (fifo, message) in self.tide_fifos.iter_mut().zip(messages.into_iter()) {
+            for message in message {
+                fifo.fifo
+                    .push_back(message)
+                    .expect("tide fifo not large enough")
+            }
+        }
+
+        // Read one message from front of tide fifos and if necessary, put on SIO fifo.
+        for fifo in self.tide_fifos.iter_mut() {
+            let message = fifo.fifo.pop_front();
+
+            if let Some(message) = message {
+                match message {
+                    // Do nothing with sync messages, they're only in the fifo for sync
+                    TideMessage::SyncMessage => (),
+                    // Send comm message to core1
+                    TideMessage::CommMessage {
+                        neighbor: _,
+                        data: _,
+                    } => {
+                        self.sio_fifo.write(message.serialize());
+                    }
+                }
+            } else {
+                panic!("Empty tide fifo!")
+            }
+        }
+
+        let buffer_levels: Vec<usize, N> = self.tide_fifos.iter().map(|f| f.fifo.len()).collect();
+
+        self.frequency_controller.run(&buffer_levels);
+    }
+}
+
+// TODO: not generic over N.., complicated by the different types.
 struct Txs {
     tx0: Tx<(PIO1, SM0)>,
     tx1: Tx<(PIO1, SM1)>,
@@ -307,9 +409,98 @@ struct Txs {
     tx3: Tx<(PIO1, SM3)>,
 }
 
+impl Txs {
+    pub fn write(&mut self, messages: [TideMessage; 4]) {
+        self.tx0.write(messages[0].serialize());
+        self.tx1.write(messages[1].serialize());
+        self.tx2.write(messages[2].serialize());
+        self.tx3.write(messages[3].serialize());
+    }
+}
+
 struct Rxs {
     rx0: Rx<(PIO0, SM0)>,
     rx1: Rx<(PIO0, SM1)>,
     rx2: Rx<(PIO0, SM2)>,
     rx3: Rx<(PIO0, SM3)>,
+}
+
+impl Rxs {
+    /// Read at most 4 values from each RX fifo.
+    /// The FIFOs hold 4 values, and if a neighbor is driving them faster than this node is running,
+    /// it's possible for there to be more than one value present. So read exactly four times every
+    /// time the control algo runs to keep up with clocks up to 4x this node's frequency.
+    /// Also adjusts the message such that the neighbor field shows what neighbor it came from.
+    pub fn read(&mut self) -> [Vec<TideMessage, 4>; 4] {
+        macro_rules! read {
+            ($rx:ident, $fifo_id:expr) => {
+                (0..3)
+                    .filter_map(|_| {
+                        self.$rx.read().map(|w| {
+                            let mut message = TideMessage::deserialize(w);
+
+                            if let TideMessage::CommMessage { neighbor: _, data } = message {
+                                message = TideMessage::CommMessage {
+                                    neighbor: $fifo_id,
+                                    data,
+                                }
+                            }
+
+                            message
+                        })
+                    })
+                    .collect::<Vec<_, 4>>()
+            };
+        }
+
+        [read!(rx0, 0), read!(rx1, 1), read!(rx2, 2), read!(rx3, 3)]
+    }
+}
+
+/// Generic over buffer size
+struct TideFifo<const B: usize> {
+    fifo: Deque<TideMessage, B>,
+}
+
+impl<const B: usize> TideFifo<B> {
+    pub fn new() -> Self {
+        let mut fifo = Deque::new();
+        for _ in 0..(B / 2) {
+            fifo.push_back(TideMessage::SyncMessage).unwrap()
+        }
+        Self { fifo }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum TideMessage {
+    /// Constant message used for sync purposes when no user message is ready
+    SyncMessage,
+    /// Communication message for user code. 1 bit is dedicated to signaling comm, 3 bits for the neigbor, the remaining 28 are for user data.
+    CommMessage { neighbor: u8, data: u32 },
+}
+
+impl TideMessage {
+    pub fn serialize(self) -> u32 {
+        match self {
+            TideMessage::SyncMessage => 0b0001,
+            TideMessage::CommMessage { neighbor, data } => {
+                let data = data & 0x0fff_ffff;
+                let neighbor = neighbor & 0b111;
+
+                (neighbor << 1) as u32 | (data << 4)
+            }
+        }
+    }
+
+    pub fn deserialize(raw: u32) -> Self {
+        match raw {
+            0b0001 => TideMessage::SyncMessage,
+            raw => {
+                let data = raw >> 4 & 0x0fff_ffff;
+                let neighbor = (raw >> 1 & 0b111) as u8;
+                TideMessage::CommMessage { neighbor, data }
+            }
+        }
+    }
 }

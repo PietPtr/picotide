@@ -37,8 +37,8 @@ impl FbdivController {
 const FBDIV_RANGE: RangeInclusive<u16> = 16..=320;
 
 impl<const N: usize, const B: usize> FrequencyController<N, B> for FbdivController {
-    fn run(&mut self, buffer_levels: &[usize; N]) {
-        // const HALF_FULL: usize = N;
+    fn run(&mut self, buffer_levels: &[usize]) {
+        assert_eq!(buffer_levels.len(), N); // TODO: compile time?
         let half_full = (N * B) / 2;
         let total_level: usize = buffer_levels.iter().sum();
 

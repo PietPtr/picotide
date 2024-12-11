@@ -641,6 +641,7 @@ dependencies = [
 name = "pitopi"
 version = "0.1.0"
 dependencies = [
+ "controllers",
  "cortex-m",
  "cortex-m-rt",
  "critical-section",

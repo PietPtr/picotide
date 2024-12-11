@@ -21,6 +21,7 @@ pio-proc = "0.2.2"
 pio = "0.2.1"
 critical-section = "1.2.0"
 heapless = { version = "0.8.0", features = ["defmt-03"] }
+controllers = { path = "../../controllers" }
 
 [features]
 benchmark = []
