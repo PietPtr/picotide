@@ -41,7 +41,7 @@ where
     }
 
     /// All the logic to execute on a scheduled basis.
-    /// This function must be called _exactly_ every `CLOCKS_PER_SYNC_WORD` cycles.
+    /// This function must be called _exactly_ every `CLOCKS_PER_SYNC_WORD` system clock cycles.
     /// All clocks should be set up such that the execution of this function takes fewer clocks than that
     /// for its worst case execution path otherwise it cannot finish.
     pub fn interrupt(&mut self) {
@@ -49,12 +49,7 @@ where
         let user_word = self.sio_fifo.read();
 
         // Send words on channel
-        let mut messages: [TideMessage; 4] = [
-            TideMessage::SyncMessage,
-            TideMessage::SyncMessage,
-            TideMessage::SyncMessage,
-            TideMessage::SyncMessage,
-        ];
+        let mut messages = [TideMessage::SyncMessage; 4];
 
         if let Some(message) = user_word.map(|w| TideMessage::deserialize(w)) {
             match message {
@@ -84,7 +79,7 @@ where
         }
 
         // Read one message from front of tide fifos and if necessary, put on SIO fifo.
-        for fifo in self.tide_fifos.iter_mut() {
+        for (id, fifo) in self.tide_fifos.iter_mut().enumerate() {
             let message = fifo.fifo.pop_front();
 
             if let Some(message) = message {
@@ -100,7 +95,8 @@ where
                     }
                 }
             } else {
-                panic!("Empty tide fifo!")
+                log::warn!("FIFO #{} is empty.", id);
+                // No other node is connected on this channel. No special action necessary.
             }
         }
 

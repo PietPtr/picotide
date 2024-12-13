@@ -132,6 +132,8 @@ name = "controllers"
 version = "0.1.0"
 dependencies = [
  "fixed",
+ "heapless",
+ "log",
  "rp-pico",
 ]
 
@@ -1050,6 +1052,7 @@ version = "0.1.0"
 dependencies = [
  "controllers",
  "heapless",
+ "log",
  "pio",
  "pio-proc",
  "rp-pico",

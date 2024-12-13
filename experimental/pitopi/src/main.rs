@@ -8,6 +8,7 @@ pub static BOOT2_FIRMWARE: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
 
 use core::{cell::RefCell, u32};
 
+use controllers::pid::PidSettings;
 use cortex_m::peripheral::syst::SystClkSource;
 use cortex_m_rt::exception;
 use critical_section::Mutex;
@@ -194,8 +195,6 @@ fn main() -> ! {
         (rx0_word.id().num, PinDir::Input),
     ]);
 
-    rx_sm0.start();
-
     let (mut rx_sm1, rx1, _tx1) = PIOBuilder::from_program(unsafe { rx_program.share() })
         .in_pin_base(rx1_data.id().num)
         .clock_divisor_fixed_point(1, 0)
@@ -206,8 +205,6 @@ fn main() -> ! {
         (rx1_clk.id().num, PinDir::Input),
         (rx1_word.id().num, PinDir::Input),
     ]);
-
-    rx_sm1.start();
 
     let (mut rx_sm2, rx2, _tx2) = PIOBuilder::from_program(unsafe { rx_program.share() })
         .in_pin_base(rx2_data.id().num)
@@ -220,8 +217,6 @@ fn main() -> ! {
         (rx2_word.id().num, PinDir::Input),
     ]);
 
-    rx_sm2.start();
-
     let (mut rx_sm3, rx3, _tx3) = PIOBuilder::from_program(unsafe { rx_program.share() })
         .in_pin_base(rx3_data.id().num)
         .clock_divisor_fixed_point(1, 0)
@@ -232,10 +227,6 @@ fn main() -> ! {
         (rx3_clk.id().num, PinDir::Input),
         (rx3_word.id().num, PinDir::Input),
     ]);
-
-    rx_sm3.start();
-
-    info!("Start.");
 
     let sio_fifo = sio.fifo;
 
@@ -248,7 +239,14 @@ fn main() -> ! {
 
     critical_section::with(|cs| {
         GLOBAL_CONTROL.borrow(cs).replace(Some(Control::new(
-            FbdivController::new(pll_sys, I16F16::from_num(0.1)),
+            FbdivController::new(
+                pll_sys,
+                PidSettings {
+                    kp: I16F16::from_num(1.0),
+                    ki: I16F16::from_num(0.0),
+                    kd: I16F16::from_num(0.0),
+                },
+            ),
             Rxs { rx0, rx1, rx2, rx3 },
             Txs { tx0, tx1, tx2, tx3 },
             sio_fifo,
@@ -261,7 +259,6 @@ fn main() -> ! {
     systick.clear_current();
     systick.enable_counter();
     systick.set_clock_source(SystClkSource::Core);
-    // systick.enable_interrupt();
 
     info!(
         "\nclksource={} ({})\nenabled={}\ntickint={}\nrvr={:#x}\nsyst_calib: noref={} skew={} tenms={:x}",
@@ -279,10 +276,18 @@ fn main() -> ! {
         pac.PPB.syst_calib.read().tenms().bits(),
     );
 
+    info!("Start.");
+
+    systick.enable_interrupt();
+    rx_sm0.start();
+    rx_sm1.start();
+    rx_sm2.start();
+    rx_sm3.start();
+
     loop {}
 }
 
-type Control = TideChannelControl<FbdivController, 4, 16>;
+type Control = TideChannelControl<FbdivController, 4, 64>;
 
 const GLOBAL_CONTROL: Mutex<RefCell<Option<Control>>> = Mutex::new(RefCell::new(None));
 
