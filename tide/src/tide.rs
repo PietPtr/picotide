@@ -51,7 +51,7 @@ where
         // Send words on channel
         let mut messages = [TideMessage::SyncMessage; 4];
 
-        if let Some(message) = user_word.map(|w| TideMessage::deserialize(w)) {
+        if let Some(message) = user_word.map(TideMessage::deserialize) {
             match message {
                 TideMessage::SyncMessage => panic!("unexpected"),
                 TideMessage::CommMessage { neighbor, data: _ } => {

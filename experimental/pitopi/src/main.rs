@@ -6,6 +6,7 @@
 #[used]
 pub static BOOT2_FIRMWARE: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
 
+use core::borrow::BorrowMut;
 use core::{cell::RefCell, u32};
 
 use controllers::pid::PidSettings;
@@ -38,14 +39,16 @@ use tide::tide::{Rxs, TideChannelControl, TideFifo, Txs};
 pub const EXTERNAL_XTAL_FREQ_HZ: HertzU32 = HertzU32::from_raw(12_000_000u32);
 
 pub const SYS_PLL_CONFIG_100MHZ: PLLConfig = PLLConfig {
-    vco_freq: HertzU32::MHz(1600),
+    vco_freq: HertzU32::MHz(1200),
     refdiv: 1,
     post_div1: 6,
     post_div2: 2,
 };
 
 /// The divisor of how many CPU cycles should pass before a new word is sent to all neigboring nodes.
-pub const CLOCKS_PER_SYNC_WORD: u32 = 1024;
+pub const CLOCKS_PER_SYNC_WORD: u32 = 2048;
+
+// TODO: "waste" 1 state machine on exposing the system clock for debugging?
 
 #[entry]
 fn main() -> ! {
@@ -71,12 +74,14 @@ fn main() -> ! {
         .configure_clock(&locked_pll_sys, locked_pll_sys.get_freq())
         .unwrap();
 
-    info!(
-        "Configured system clock at frequency: {:?}MHz",
-        locked_pll_sys.get_freq().to_Hz() as f32 / 1e6
-    );
-
+    let freq = locked_pll_sys.get_freq().to_Hz() as f32 / 1e6;
     let pll_sys = locked_pll_sys.free();
+
+    info!(
+        "Configured system clock at frequency: {:?}MHz (fbdiv={})",
+        freq,
+        pll_sys.fbdiv_int.read().fbdiv_int().bits()
+    );
 
     let pins = gpio::Pins::new(
         pac.IO_BANK0,
@@ -121,7 +126,7 @@ fn main() -> ! {
         (tx0_word.id().num, PinDir::Output),
     ]);
 
-    tx_sm0.start();
+    // tx_sm0.start();
 
     let (mut tx_sm1, _rx1, tx1) = PIOBuilder::from_program(unsafe { tx_program.share() })
         .out_pins(tx1_data.id().num, 1)
@@ -151,19 +156,32 @@ fn main() -> ! {
 
     tx_sm2.start();
 
-    let (mut tx_sm3, _rx3, tx3) = PIOBuilder::from_program(unsafe { tx_program.share() })
+    // TODO: feature?
+    // let (mut tx_sm3, _rx3, tx3) = PIOBuilder::from_program(unsafe { tx_program.share() })
+    //     .out_pins(tx3_data.id().num, 1)
+    //     .side_set_pin_base(tx3_clk.id().num)
+    //     .clock_divisor_fixed_point(4, 0)
+    //     .build(tx_sm3);
+
+    // tx_sm3.set_pindirs([
+    //     (tx3_data.id().num, PinDir::Output),
+    //     (tx3_clk.id().num, PinDir::Output),
+    //     (tx3_word.id().num, PinDir::Output),
+    // ]);
+
+    // tx_sm3.start();
+
+    let program = pio_file!("src/programs.pio", select_program("toggle_pin")).program;
+    let toggle_pin_program = tx_pio.install(&program).unwrap();
+
+    let (mut tx_sm3, _rx3, tx3) = PIOBuilder::from_program(toggle_pin_program)
         .out_pins(tx3_data.id().num, 1)
-        .side_set_pin_base(tx3_clk.id().num)
-        .clock_divisor_fixed_point(4, 0)
+        .clock_divisor_fixed_point(100, 0)
         .build(tx_sm3);
 
-    tx_sm3.set_pindirs([
-        (tx3_data.id().num, PinDir::Output),
-        (tx3_clk.id().num, PinDir::Output),
-        (tx3_word.id().num, PinDir::Output),
-    ]);
+    tx_sm3.set_pindirs([(tx3_data.id().num, PinDir::Output)]);
 
-    tx_sm3.start();
+    let tx_sm3 = tx_sm3.start();
 
     let rx0_data = pins.gpio3.into_function::<FunctionPio0>();
     let rx0_clk = pins.gpio4.into_function::<FunctionPio0>();
@@ -232,26 +250,28 @@ fn main() -> ! {
 
     let tide_fifos = [
         TideFifo::new(),
-        TideFifo::new(),
-        TideFifo::new(),
-        TideFifo::new(),
+        // TideFifo::new(),
+        // TideFifo::new(),
+        // TideFifo::new(),
     ];
 
+    let tide_controller = Control::new(
+        FbdivController::new(
+            pll_sys,
+            PidSettings {
+                kp: I16F16::from_num(-1.0),
+                ki: I16F16::from_num(0.0),
+                kd: I16F16::from_num(0.0),
+            },
+        ),
+        Rxs { rx0, rx1, rx2, rx3 },
+        Txs { tx0, tx1, tx2, tx3 },
+        sio_fifo,
+        tide_fifos,
+    );
+
     critical_section::with(|cs| {
-        GLOBAL_CONTROL.borrow(cs).replace(Some(Control::new(
-            FbdivController::new(
-                pll_sys,
-                PidSettings {
-                    kp: I16F16::from_num(1.0),
-                    ki: I16F16::from_num(0.0),
-                    kd: I16F16::from_num(0.0),
-                },
-            ),
-            Rxs { rx0, rx1, rx2, rx3 },
-            Txs { tx0, tx1, tx2, tx3 },
-            sio_fifo,
-            tide_fifos,
-        )))
+        GLOBAL_CONTROL.borrow(cs).replace(Some(tide_controller));
     });
 
     let mut systick = core.SYST;
@@ -284,12 +304,14 @@ fn main() -> ! {
     rx_sm2.start();
     rx_sm3.start();
 
-    loop {}
+    loop {
+        // info!("sm3 intsr {}", tx_sm3.instruction_address());
+    }
 }
 
-type Control = TideChannelControl<FbdivController, 4, 64>;
+type Control = TideChannelControl<FbdivController, 1, 64>;
 
-const GLOBAL_CONTROL: Mutex<RefCell<Option<Control>>> = Mutex::new(RefCell::new(None));
+static GLOBAL_CONTROL: Mutex<RefCell<Option<Control>>> = Mutex::new(RefCell::new(None));
 
 #[exception]
 fn SysTick() {

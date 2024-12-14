@@ -131,9 +131,9 @@ dependencies = [
 name = "controllers"
 version = "0.1.0"
 dependencies = [
+ "defmt",
  "fixed",
  "heapless",
- "log",
  "rp-pico",
 ]
 

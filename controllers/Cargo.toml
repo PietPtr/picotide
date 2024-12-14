@@ -9,4 +9,4 @@ edition = "2021"
 rp-pico = { version = "0.8.0", default-features = false, features = ["rt", "critical-section-impl", "rom-func-cache"] }
 fixed = "=1.27.0"
 heapless = { version = "0.8.0", features = ["defmt-03"] }
-log = "0.4.22"
+defmt = "0.3.5"
