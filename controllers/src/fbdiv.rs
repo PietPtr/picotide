@@ -13,6 +13,7 @@ use crate::{
 /// This register must be of a value between 16 and 320, and a lower value results in a higher
 /// system clock frequency.
 pub struct FbdivController {
+    degree: usize,
     pll_sys: PLL_SYS,
     fbdiv_internal: I16F16,
     pid: PidControl,
@@ -23,10 +24,11 @@ pub struct FbdivController {
 }
 
 impl FbdivController {
-    pub fn new(pll_sys: PLL_SYS, pid_settings: PidSettings) -> Self {
+    pub fn new(degree: usize, pll_sys: PLL_SYS, pid_settings: PidSettings) -> Self {
         let initial_fbdiv = pll_sys.fbdiv_int.read().fbdiv_int().bits();
 
         Self {
+            degree,
             pll_sys,
             fbdiv_internal: I16F16::from_num(initial_fbdiv),
             pid: PidControl::new(pid_settings),
@@ -55,11 +57,11 @@ impl FbdivController {
 // const FBDIV_RANGE: RangeInclusive<u16> = 16..=320;
 const FBDIV_RANGE: RangeInclusive<u16> = 90..=110;
 
-impl<const N: usize, const B: usize> FrequencyController<N, B> for FbdivController {
+impl<const B: usize> FrequencyController<B> for FbdivController {
     fn run(&mut self, buffer_levels: &[usize]) {
         self.i += 1;
-        assert_eq!(buffer_levels.len(), N); // TODO: compile time?
-        let half_full = (N * B) / 2;
+        assert!(buffer_levels.len() >= self.degree); // TODO: return Err?
+        let half_full = (self.degree * B) / 2;
         let total_level: usize = buffer_levels.iter().sum();
 
         if self.i % 32768 == 0 {
@@ -96,5 +98,10 @@ impl<const N: usize, const B: usize> FrequencyController<N, B> for FbdivControll
         }
 
         // self.write_fbdiv(self.fbdiv_internal.round().int().to_bits() as u16);
+    }
+
+    fn set_degree(&mut self, new_degree: usize) {
+        defmt::info!("set degree: {} -> {}", self.degree, new_degree);
+        self.degree = new_degree
     }
 }

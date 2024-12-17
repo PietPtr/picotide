@@ -1,5 +1,3 @@
-use core::ops::{Add, AddAssign, Mul, Sub};
-
 use fixed::types::I16F16;
 
 pub struct PidSettings {
@@ -28,8 +26,6 @@ impl PidControl {
 
         self.integral += error;
         let derivative = error - self.previous_error;
-
-        let output = self.k.kp * error + self.k.ki * self.integral + self.k.kd * derivative;
 
         let proportional = self.k.kp.saturating_mul(error);
         let integral = self.k.ki.saturating_mul(self.integral);

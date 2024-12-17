@@ -6,7 +6,6 @@
 #[used]
 pub static BOOT2_FIRMWARE: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
 
-use core::borrow::BorrowMut;
 use core::{cell::RefCell, u32};
 
 use controllers::pid::PidSettings;
@@ -181,7 +180,7 @@ fn main() -> ! {
 
     tx_sm3.set_pindirs([(tx3_data.id().num, PinDir::Output)]);
 
-    let tx_sm3 = tx_sm3.start();
+    tx_sm3.start();
 
     let rx0_data = pins.gpio3.into_function::<FunctionPio0>();
     let rx0_clk = pins.gpio4.into_function::<FunctionPio0>();
@@ -250,13 +249,14 @@ fn main() -> ! {
 
     let tide_fifos = [
         TideFifo::new(),
-        // TideFifo::new(),
-        // TideFifo::new(),
-        // TideFifo::new(),
+        TideFifo::new(),
+        TideFifo::new(),
+        TideFifo::new(),
     ];
 
     let tide_controller = Control::new(
         FbdivController::new(
+            4,
             pll_sys,
             PidSettings {
                 kp: I16F16::from_num(-1.0),
@@ -264,8 +264,8 @@ fn main() -> ! {
                 kd: I16F16::from_num(0.0),
             },
         ),
-        Rxs { rx0, rx1, rx2, rx3 },
-        Txs { tx0, tx1, tx2, tx3 },
+        Rxs::new(rx0, rx1, rx2, rx3),
+        Txs::new(tx0, tx1, tx2, tx3),
         sio_fifo,
         tide_fifos,
     );
@@ -304,12 +304,13 @@ fn main() -> ! {
     rx_sm2.start();
     rx_sm3.start();
 
+    #[allow(clippy::empty_loop)]
     loop {
         // info!("sm3 intsr {}", tx_sm3.instruction_address());
     }
 }
 
-type Control = TideChannelControl<FbdivController, 1, 64>;
+type Control = TideChannelControl<FbdivController, 64>;
 
 static GLOBAL_CONTROL: Mutex<RefCell<Option<Control>>> = Mutex::new(RefCell::new(None));
 
