@@ -34,6 +34,6 @@ tx:
 
 .program toggle_pin
 .wrap_target
-    set pins, 0b1 [31]
-    set pins, 0b0 [31]
+    set pins, 1
+    set pins, 0
 .wrap

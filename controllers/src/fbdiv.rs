@@ -41,12 +41,12 @@ impl FbdivController {
         self.pll_sys.fbdiv_int.read().fbdiv_int().bits()
     }
 
-    pub fn write_fbdiv(&mut self, new_fbdiv: u16) {
+    pub fn write_fbdiv(&mut self, new_fbdiv: i32) {
         let new_fbdiv = if !FBDIV_RANGE.contains(&new_fbdiv) {
             new_fbdiv.clamp(FBDIV_RANGE.min().unwrap(), FBDIV_RANGE.max().unwrap())
         } else {
             new_fbdiv
-        };
+        } as u16;
 
         self.pll_sys
             .fbdiv_int
@@ -55,7 +55,7 @@ impl FbdivController {
 }
 
 // const FBDIV_RANGE: RangeInclusive<u16> = 16..=320;
-const FBDIV_RANGE: RangeInclusive<u16> = 90..=110;
+const FBDIV_RANGE: RangeInclusive<i32> = 97..=103;
 
 impl<const B: usize> FrequencyController<B> for FbdivController {
     fn run(&mut self, buffer_levels: &[usize]) {
@@ -66,38 +66,41 @@ impl<const B: usize> FrequencyController<B> for FbdivController {
 
         if self.i % 32768 == 0 {
             defmt::info!(
-                "{} buffer_levels={}->{} fbdiv={}",
+                "{} buffer_levels={}->{} fbdiv={} (={})",
                 self.i,
                 buffer_levels,
                 half_full,
                 self.fbdiv_internal.to_num::<f32>(),
+                self.pll_sys.fbdiv_int.read().fbdiv_int().bits(),
             );
+
+            // for (i, (dbg, _)) in self.debug.iter().enumerate() {
+            //     defmt::info!("{} = {}", i, dbg);
+            // }
         }
 
         let adjust = self
             .pid
             .run(I16F16::from_num(half_full), I16F16::from_num(total_level));
 
-        self.fbdiv_internal = self.fbdiv_internal.saturating_add(adjust);
+        self.fbdiv_internal = self.fbdiv_internal.saturating_sub(adjust);
+
+        self.fbdiv_internal = self.fbdiv_internal.clamp(
+            I16F16::from_num(FBDIV_RANGE.min().unwrap()),
+            I16F16::from_num(FBDIV_RANGE.max().unwrap()),
+        );
+
+        if self.fbdiv_internal == I16F16::from_num(FBDIV_RANGE.min().unwrap()) {
+            self.fbdiv_internal = I16F16::from_num(100);
+        }
 
         if !self.debug.is_full() {
             self.debug.push((total_level, self.fbdiv_internal)).unwrap();
         }
 
-        if self.i == 1000 {
-            defmt::info!(
-                "fbdiv controller debug:\n{:?}",
-                self.debug
-                    .iter()
-                    .map(|(buffer_level, internal_fbdiv)| (
-                        buffer_level,
-                        internal_fbdiv.to_num::<f32>()
-                    ))
-                    .collect::<Vec<_, 256>>()
-            );
-        }
+        let fbdiv_int = self.fbdiv_internal.round().int().to_bits() >> 16;
 
-        // self.write_fbdiv(self.fbdiv_internal.round().int().to_bits() as u16);
+        self.write_fbdiv(fbdiv_int);
     }
 
     fn set_degree(&mut self, new_degree: usize) {

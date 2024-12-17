@@ -45,7 +45,7 @@ pub const SYS_PLL_CONFIG_100MHZ: PLLConfig = PLLConfig {
 };
 
 /// The divisor of how many CPU cycles should pass before a new word is sent to all neigboring nodes.
-pub const CLOCKS_PER_SYNC_WORD: u32 = 2048;
+pub const CLOCKS_PER_SYNC_WORD: u32 = 4096;
 
 // TODO: "waste" 1 state machine on exposing the system clock for debugging?
 
@@ -102,8 +102,7 @@ fn main() -> ! {
     let tx1_word = pins.gpio8.into_function::<FunctionPio1>();
 
     let tx2_data = pins.gpio12.into_function::<FunctionPio1>();
-    let tx2_clk: gpio::Pin<gpio::bank0::Gpio13, FunctionPio1, gpio::PullDown> =
-        pins.gpio13.into_function::<FunctionPio1>();
+    let tx2_clk = pins.gpio13.into_function::<FunctionPio1>();
     let tx2_word = pins.gpio14.into_function::<FunctionPio1>();
 
     let tx3_data = pins.gpio18.into_function::<FunctionPio1>();
@@ -125,7 +124,7 @@ fn main() -> ! {
         (tx0_word.id().num, PinDir::Output),
     ]);
 
-    // tx_sm0.start();
+    tx_sm0.start();
 
     let (mut tx_sm1, _rx1, tx1) = PIOBuilder::from_program(unsafe { tx_program.share() })
         .out_pins(tx1_data.id().num, 1)
@@ -173,14 +172,22 @@ fn main() -> ! {
     let program = pio_file!("src/programs.pio", select_program("toggle_pin")).program;
     let toggle_pin_program = tx_pio.install(&program).unwrap();
 
+    // --- make compile time debugging feature ---
+
+    let clk_pin = tx3_clk;
+
+    info!("pin num {}", clk_pin.id().num);
+
     let (mut tx_sm3, _rx3, tx3) = PIOBuilder::from_program(toggle_pin_program)
-        .out_pins(tx3_data.id().num, 1)
-        .clock_divisor_fixed_point(100, 0)
+        .set_pins(clk_pin.id().num, 1)
+        .clock_divisor_fixed_point((CLOCKS_PER_SYNC_WORD / 2) as u16, 0) // TODO: unsafe cast
         .build(tx_sm3);
 
-    tx_sm3.set_pindirs([(tx3_data.id().num, PinDir::Output)]);
+    tx_sm3.set_pindirs([(clk_pin.id().num, PinDir::Output)]);
 
     tx_sm3.start();
+
+    // --- until here ---
 
     let rx0_data = pins.gpio3.into_function::<FunctionPio0>();
     let rx0_clk = pins.gpio4.into_function::<FunctionPio0>();
@@ -259,9 +266,9 @@ fn main() -> ! {
             4,
             pll_sys,
             PidSettings {
-                kp: I16F16::from_num(-1.0),
-                ki: I16F16::from_num(0.0),
-                kd: I16F16::from_num(0.0),
+                kp: I16F16::from_num(0.01),
+                ki: I16F16::from_num(0.00000001),
+                kd: I16F16::from_num(0.01),
             },
         ),
         Rxs::new(rx0, rx1, rx2, rx3),
