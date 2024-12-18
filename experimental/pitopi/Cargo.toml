@@ -26,4 +26,4 @@ tide = { path = "../../tide" }
 fixed = "=1.27.0"
 
 [features]
-benchmark = []
+expose_clock = []

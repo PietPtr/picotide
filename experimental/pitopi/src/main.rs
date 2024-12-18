@@ -47,8 +47,6 @@ pub const SYS_PLL_CONFIG_100MHZ: PLLConfig = PLLConfig {
 /// The divisor of how many CPU cycles should pass before a new word is sent to all neigboring nodes.
 pub const CLOCKS_PER_SYNC_WORD: u32 = 4096;
 
-// TODO: "waste" 1 state machine on exposing the system clock for debugging?
-
 #[entry]
 fn main() -> ! {
     let mut pac = pac::Peripherals::take().unwrap();
@@ -105,10 +103,6 @@ fn main() -> ! {
     let tx2_clk = pins.gpio13.into_function::<FunctionPio1>();
     let tx2_word = pins.gpio14.into_function::<FunctionPio1>();
 
-    let tx3_data = pins.gpio18.into_function::<FunctionPio1>();
-    let tx3_clk = pins.gpio19.into_function::<FunctionPio1>();
-    let tx3_word = pins.gpio20.into_function::<FunctionPio1>();
-
     let pitopi_tx_program = pio_file!("src/programs.pio", select_program("pitopi_tx")).program;
     let tx_program = tx_pio.install(&pitopi_tx_program).unwrap();
 
@@ -154,40 +148,47 @@ fn main() -> ! {
 
     tx_sm2.start();
 
-    // TODO: feature?
-    // let (mut tx_sm3, _rx3, tx3) = PIOBuilder::from_program(unsafe { tx_program.share() })
-    //     .out_pins(tx3_data.id().num, 1)
-    //     .side_set_pin_base(tx3_clk.id().num)
-    //     .clock_divisor_fixed_point(4, 0)
-    //     .build(tx_sm3);
+    #[cfg(not(feature = "expose_clock"))]
+    let tx3 = {
+        let tx3_data = pins.gpio18.into_function::<FunctionPio1>();
+        let tx3_clk = pins.gpio19.into_function::<FunctionPio1>();
+        let tx3_word = pins.gpio20.into_function::<FunctionPio1>();
 
-    // tx_sm3.set_pindirs([
-    //     (tx3_data.id().num, PinDir::Output),
-    //     (tx3_clk.id().num, PinDir::Output),
-    //     (tx3_word.id().num, PinDir::Output),
-    // ]);
+        let (mut tx_sm3, _rx3, tx3) = PIOBuilder::from_program(unsafe { tx_program.share() })
+            .out_pins(tx3_data.id().num, 1)
+            .side_set_pin_base(tx3_clk.id().num)
+            .clock_divisor_fixed_point(4, 0)
+            .build(tx_sm3);
 
-    // tx_sm3.start();
+        tx_sm3.set_pindirs([
+            (tx3_data.id().num, PinDir::Output),
+            (tx3_clk.id().num, PinDir::Output),
+            (tx3_word.id().num, PinDir::Output),
+        ]);
 
-    let program = pio_file!("src/programs.pio", select_program("toggle_pin")).program;
-    let toggle_pin_program = tx_pio.install(&program).unwrap();
+        tx_sm3.start();
+        tx3
+    };
 
-    // --- make compile time debugging feature ---
+    #[cfg(feature = "expose_clock")]
+    let tx3 = {
+        let program = pio_file!("src/programs.pio", select_program("toggle_pin")).program;
+        let program = tx_pio.install(&program).unwrap();
 
-    let clk_pin = tx3_clk;
+        let clk_pin = pins.gpio19.into_function::<FunctionPio1>();
 
-    info!("pin num {}", clk_pin.id().num);
+        info!("Exposing clock on {}", clk_pin.id().num);
 
-    let (mut tx_sm3, _rx3, tx3) = PIOBuilder::from_program(toggle_pin_program)
-        .set_pins(clk_pin.id().num, 1)
-        .clock_divisor_fixed_point((CLOCKS_PER_SYNC_WORD / 2) as u16, 0) // TODO: unsafe cast
-        .build(tx_sm3);
+        let (mut tx_sm3, _rx3, tx3) = PIOBuilder::from_program(program)
+            .set_pins(clk_pin.id().num, 1)
+            .clock_divisor_fixed_point((CLOCKS_PER_SYNC_WORD / 2) as u16, 0) // Best effort way of syncing the clock to the words sent out
+            .build(tx_sm3);
 
-    tx_sm3.set_pindirs([(clk_pin.id().num, PinDir::Output)]);
+        tx_sm3.set_pindirs([(clk_pin.id().num, PinDir::Output)]);
 
-    tx_sm3.start();
-
-    // --- until here ---
+        tx_sm3.start();
+        tx3
+    };
 
     let rx0_data = pins.gpio3.into_function::<FunctionPio0>();
     let rx0_clk = pins.gpio4.into_function::<FunctionPio0>();

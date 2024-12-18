@@ -127,7 +127,7 @@ impl Txs {
         Self { tx0, tx1, tx2, tx3 }
     }
 
-    pub fn write(&mut self, messages: [TideMessage; 4]) {
+    pub fn write(&mut self, messages: [TideMessage; MAX_DEGREE]) {
         self.tx0.write(messages[0].serialize());
         self.tx1.write(messages[1].serialize());
         self.tx2.write(messages[2].serialize());
@@ -140,7 +140,7 @@ pub struct Rxs {
     rx1: Rx<(PIO0, SM1)>,
     rx2: Rx<(PIO0, SM2)>,
     rx3: Rx<(PIO0, SM3)>,
-    no_msg_counters: [usize; 4],
+    no_msg_counters: [usize; MAX_DEGREE],
 }
 
 impl Rxs {

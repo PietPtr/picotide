@@ -245,7 +245,7 @@ fn IO_IRQ_BANK0() {
         info!(
             "syst diff={} (~{}MHz)",
             ticks_taken,
-            interpolate_frequency(ticks_taken) as f32 / 1e6
+            interpolate_frequency(ticks_taken) / 1e6
         );
 
         clk_senser.clear_interrupt(Interrupt::EdgeHigh);
