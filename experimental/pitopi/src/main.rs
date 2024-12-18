@@ -9,16 +9,23 @@ pub static BOOT2_FIRMWARE: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
 use core::{cell::RefCell, u32};
 
 use controllers::pid::PidSettings;
+use cortex_m::asm;
 use cortex_m::peripheral::syst::SystClkSource;
 use cortex_m_rt::exception;
 use critical_section::Mutex;
 #[allow(unused_imports)]
 use defmt::{error, info, warn};
 use defmt_rtt as _;
+use embedded_hal::digital::v2::OutputPin;
 use fixed::types::I16F16;
 use fugit::HertzU32;
+use fugit::RateExtU32;
 use panic_probe as _;
 use pio_proc::pio_file;
+use rp_pico::hal::gpio::Pin;
+use rp_pico::hal::gpio::PullUp;
+use rp_pico::hal::gpio::{FunctionClock, FunctionI2c};
+use rp_pico::hal::I2C;
 use rp_pico::pac;
 use rp_pico::{
     entry,
@@ -33,6 +40,10 @@ use rp_pico::{
 };
 
 use controllers::fbdiv::FbdivController;
+use si5351::OutputDivider;
+use si5351::Si5351;
+use si5351::Si5351Device;
+use si5351::PLL;
 use tide::tide::{Rxs, TideChannelControl, TideFifo, Txs};
 
 pub const EXTERNAL_XTAL_FREQ_HZ: HertzU32 = HertzU32::from_raw(12_000_000u32);
@@ -89,6 +100,8 @@ fn main() -> ! {
 
     let (mut tx_pio, tx_sm0, tx_sm1, tx_sm2, tx_sm3) = pac.PIO1.split(&mut pac.RESETS);
     let (mut rx_pio, rx_sm0, rx_sm1, rx_sm2, rx_sm3) = pac.PIO0.split(&mut pac.RESETS);
+
+    let gpio_as_clock = pins.gpio20.into_function::<FunctionClock>();
 
     // Set up 4 TX channels
     let tx0_data = pins.gpio0.into_function::<FunctionPio1>();
@@ -152,7 +165,7 @@ fn main() -> ! {
     let tx3 = {
         let tx3_data = pins.gpio18.into_function::<FunctionPio1>();
         let tx3_clk = pins.gpio19.into_function::<FunctionPio1>();
-        let tx3_word = pins.gpio20.into_function::<FunctionPio1>();
+        let tx3_word = pins.gpio21.into_function::<FunctionPio1>();
 
         let (mut tx_sm3, _rx3, tx3) = PIOBuilder::from_program(unsafe { tx_program.share() })
             .out_pins(tx3_data.id().num, 1)
@@ -170,6 +183,7 @@ fn main() -> ! {
         tx3
     };
 
+    // TODO: expose clock through gpout pins?
     #[cfg(feature = "expose_clock")]
     let tx3 = {
         let program = pio_file!("src/programs.pio", select_program("toggle_pin")).program;
@@ -202,9 +216,9 @@ fn main() -> ! {
     let rx2_clk = pins.gpio16.into_function::<FunctionPio0>();
     let rx2_word = pins.gpio17.into_function::<FunctionPio0>();
 
-    let rx3_data = pins.gpio21.into_function::<FunctionPio0>();
-    let rx3_clk = pins.gpio22.into_function::<FunctionPio0>();
-    let rx3_word = pins.gpio23.into_function::<FunctionPio0>();
+    let rx3_data = pins.gpio22.into_function::<FunctionPio0>();
+    let rx3_clk = pins.gpio23.into_function::<FunctionPio0>();
+    let rx3_word = pins.gpio24.into_function::<FunctionPio0>();
 
     let pitopi_rx_program = pio_file!("src/programs.pio", select_program("pitopi_rx")).program;
     let rx_program = rx_pio.install(&pitopi_rx_program).unwrap();
@@ -304,17 +318,85 @@ fn main() -> ! {
         pac.PPB.syst_calib.read().tenms().bits(),
     );
 
+    info!("Configuring Si5351");
+
+    let si5351_sda = pins.gpio26.into_function::<FunctionI2c>();
+    let si5351_scl = pins.gpio27.into_function::<FunctionI2c>();
+
+    let i2c = I2C::i2c1(
+        pac.I2C1,
+        si5351_sda,
+        si5351_scl,
+        100.kHz(),
+        &mut pac.RESETS,
+        &clocks.system_clock,
+    );
+
+    let mut clock = Si5351Device::new(i2c, false, 25_000_000);
+    clock
+        .init(si5351::CrystalLoad::_10)
+        .expect("Cannot init clock.");
+
+    clock
+        .set_frequency(si5351::PLL::A, si5351::ClockOutput::Clk0, 13_000_000)
+        .expect("Cannot set frequency");
+
     info!("Start.");
 
-    systick.enable_interrupt();
+    // systick.enable_interrupt();
     rx_sm0.start();
     rx_sm1.start();
     rx_sm2.start();
     rx_sm3.start();
 
+    let mut frequency = 1_000_000;
+
+    let (ms_divider, r_div) = clock
+        .find_int_dividers_for_max_pll_freq(900_000_000, 12_000_000)
+        .unwrap();
+    let r_div = match r_div {
+        OutputDivider::Div1 => 1,
+        OutputDivider::Div2 => 2,
+        OutputDivider::Div4 => 4,
+        OutputDivider::Div8 => 8,
+        OutputDivider::Div16 => 16,
+        OutputDivider::Div32 => 32,
+        OutputDivider::Div64 => 64,
+        OutputDivider::Div128 => 128,
+    };
+    let total_div = ms_divider as u32 * r_div as u32;
+    let denom = 1048575;
+    let (mult, num) = clock
+        .find_pll_coeffs_for_dividers(total_div, denom, 12_000_000)
+        .unwrap();
+
+    info!("mult={} num={} denom={}", mult, num, denom);
+
+    let mut num = 545369;
+
+    let mut trigger_pin = pins.gpio28.into_push_pull_output();
+
     #[allow(clippy::empty_loop)]
     loop {
-        // info!("sm3 intsr {}", tx_sm3.instruction_address());
+        for _ in 0..150000 {
+            asm::nop();
+        }
+
+        trigger_pin.set_low().unwrap();
+
+        clock
+            .setup_pll(PLL::A, 35, 0xfffff, 1048575)
+            .expect("Cannot setup PLL");
+
+        trigger_pin.set_high().unwrap();
+
+        for _ in 0..150000 {
+            asm::nop();
+        }
+
+        clock
+            .setup_pll(PLL::A, 35, 0, 1048575)
+            .expect("Cannot setup PLL");
     }
 }
 

@@ -24,6 +24,7 @@ heapless = { version = "0.8.0", features = ["defmt-03"] }
 controllers = { path = "../../controllers" }
 tide = { path = "../../tide" }
 fixed = "=1.27.0"
+si5351 = "0.2.0"
 
 [features]
 expose_clock = []
