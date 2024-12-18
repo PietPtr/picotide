@@ -22,9 +22,12 @@ use fugit::HertzU32;
 use fugit::RateExtU32;
 use panic_probe as _;
 use pio_proc::pio_file;
+use rp_pico::hal::clocks::ValidSrc;
+use rp_pico::hal::gpio::bank0::Gpio20;
 use rp_pico::hal::gpio::Pin;
-use rp_pico::hal::gpio::PullUp;
+use rp_pico::hal::gpio::PullNone;
 use rp_pico::hal::gpio::{FunctionClock, FunctionI2c};
+use rp_pico::hal::rosc::RingOscillator;
 use rp_pico::hal::I2C;
 use rp_pico::pac;
 use rp_pico::{
@@ -40,7 +43,6 @@ use rp_pico::{
 };
 
 use controllers::fbdiv::FbdivController;
-use si5351::OutputDivider;
 use si5351::Si5351;
 use si5351::Si5351Device;
 use si5351::PLL;
@@ -64,32 +66,13 @@ fn main() -> ! {
     let core = pac::CorePeripherals::take().unwrap();
     let sio = Sio::new(pac.SIO);
 
-    let mut clocks = ClocksManager::new(pac.CLOCKS);
-
-    let xosc = setup_xosc_blocking(pac.XOSC, EXTERNAL_XTAL_FREQ_HZ).unwrap();
-
-    let locked_pll_sys = setup_pll_blocking(
-        pac.PLL_SYS,
-        xosc.operating_frequency(),
-        SYS_PLL_CONFIG_100MHZ,
-        &mut clocks,
-        &mut pac.RESETS,
-    )
-    .unwrap();
-
-    clocks
-        .system_clock
-        .configure_clock(&locked_pll_sys, locked_pll_sys.get_freq())
-        .unwrap();
-
-    let freq = locked_pll_sys.get_freq().to_Hz() as f32 / 1e6;
-    let pll_sys = locked_pll_sys.free();
-
     info!(
-        "Configured system clock at frequency: {:?}MHz (fbdiv={})",
-        freq,
-        pll_sys.fbdiv_int.read().fbdiv_int().bits()
+        "{:?} {}",
+        pac.CLOCKS.clk_sys_ctrl.read().src().bit(),
+        pac.CLOCKS.clk_sys_ctrl.read().auxsrc().bits()
     );
+
+    let mut clocks = ClocksManager::new(pac.CLOCKS);
 
     let pins = gpio::Pins::new(
         pac.IO_BANK0,
@@ -98,10 +81,119 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
+    // TODO: make sure ref clock is set to rosc, then run system clock of ref clock (=rosc)
+    // Run of Ring oscillatior (should be the default, unless other software has made changes to clocking, so set on startup)
+    let rosc = RingOscillator::new(pac.ROSC);
+    let rosc = rosc.initialize();
+
+    clocks
+        .system_clock
+        .configure_clock(&rosc, rosc.get_freq())
+        .unwrap();
+
+    info!("Set clock to rosc {:?}MHz", rosc.get_freq().to_MHz());
+
+    info!("Configuring Si5351");
+
+    let si5351_sda = pins.gpio26.into_function::<FunctionI2c>();
+    let si5351_scl = pins.gpio27.into_function::<FunctionI2c>();
+
+    let i2c = I2C::i2c1(
+        pac.I2C1,
+        si5351_sda,
+        si5351_scl,
+        100.kHz(),
+        &mut pac.RESETS,
+        &clocks.system_clock,
+    );
+
+    let mut clock = Si5351Device::new(i2c, false, 25_000_000);
+    clock
+        .init(si5351::CrystalLoad::_10)
+        .expect("Cannot init clock.");
+
+    clock
+        .set_frequency(si5351::PLL::A, si5351::ClockOutput::Clk0, 13_000_000)
+        .expect("Cannot set frequency");
+
+    clock
+        .setup_pll(PLL::A, 35, 0x7ffff, 0xfffff)
+        .expect("Cannot setup PLL");
+
     let (mut tx_pio, tx_sm0, tx_sm1, tx_sm2, tx_sm3) = pac.PIO1.split(&mut pac.RESETS);
     let (mut rx_pio, rx_sm0, rx_sm1, rx_sm2, rx_sm3) = pac.PIO0.split(&mut pac.RESETS);
 
-    let gpio_as_clock = pins.gpio20.into_function::<FunctionClock>();
+    // TODO: expose clock through gpout pins?
+    #[cfg(feature = "expose_clock")]
+    let tx3 = {
+        let program = pio_file!("src/programs.pio", select_program("toggle_pin")).program;
+        let program = tx_pio.install(&program).unwrap();
+
+        let clk_pin = pins.gpio19.into_function::<FunctionPio1>();
+
+        info!("Exposing clock on {}", clk_pin.id().num);
+
+        let (mut tx_sm3, _rx3, tx3) = PIOBuilder::from_program(program)
+            .set_pins(clk_pin.id().num, 1)
+            .clock_divisor_fixed_point((CLOCKS_PER_SYNC_WORD / 2) as u16, 0) // Best effort way of syncing the clock to the words sent out
+            .build(tx_sm3);
+
+        tx_sm3.set_pindirs([(clk_pin.id().num, PinDir::Output)]);
+
+        tx_sm3.start();
+        tx3
+    };
+
+    // let clocks_freed = clocks.free();
+
+    // info!("{:?}", clocks_freed.clk_sys_ctrl.read().src().bit());
+    // info!("{:?}", clocks_freed.clk_sys_ctrl.read().auxsrc().bits());
+
+    // Set up clock to run from gpio input to run off Si5351 clock
+    let gpin0: Pin<Gpio20, FunctionClock, PullNone> = pins.gpio20.reconfigure();
+
+    // clocks
+    //     .system_clock
+    //     .configure_clock(&gpin0, 12.MHz())
+    //     .unwrap();
+
+    let clocks = clocks.free();
+
+    info!(
+        "ref clock is? rosc=0, this={}",
+        clocks.clk_ref_ctrl.read().src().bits()
+    );
+
+    // clocks.clk_sys_ctrl.write(|w| w.src().clear_bit());
+
+    info!("set to aux? {}", clocks.clk_sys_ctrl.read().src().bit());
+
+    clocks.clk_sys_ctrl.modify(|_, w| {
+        w.auxsrc()
+            .variant(pac::clocks::clk_sys_ctrl::AUXSRC_A::CLKSRC_GPIN0)
+    });
+
+    let mut fractional = 0;
+    let mut trigger_pin = pins.gpio28.into_push_pull_output();
+
+    loop {
+        trigger_pin.set_low().unwrap();
+        clock
+            .setup_pll(PLL::A, 25, fractional, 0xfffff)
+            .expect("Cannot setup PLL");
+        trigger_pin.set_high().unwrap();
+
+        info!("frac {}", fractional);
+
+        fractional += 10000;
+        if fractional >= 0xfffff {
+            fractional = 0;
+        };
+
+        for _ in 0..150000 {
+            asm::nop();
+        }
+    }
 
     // Set up 4 TX channels
     let tx0_data = pins.gpio0.into_function::<FunctionPio1>();
@@ -183,27 +275,6 @@ fn main() -> ! {
         tx3
     };
 
-    // TODO: expose clock through gpout pins?
-    #[cfg(feature = "expose_clock")]
-    let tx3 = {
-        let program = pio_file!("src/programs.pio", select_program("toggle_pin")).program;
-        let program = tx_pio.install(&program).unwrap();
-
-        let clk_pin = pins.gpio19.into_function::<FunctionPio1>();
-
-        info!("Exposing clock on {}", clk_pin.id().num);
-
-        let (mut tx_sm3, _rx3, tx3) = PIOBuilder::from_program(program)
-            .set_pins(clk_pin.id().num, 1)
-            .clock_divisor_fixed_point((CLOCKS_PER_SYNC_WORD / 2) as u16, 0) // Best effort way of syncing the clock to the words sent out
-            .build(tx_sm3);
-
-        tx_sm3.set_pindirs([(clk_pin.id().num, PinDir::Output)]);
-
-        tx_sm3.start();
-        tx3
-    };
-
     let rx0_data = pins.gpio3.into_function::<FunctionPio0>();
     let rx0_clk = pins.gpio4.into_function::<FunctionPio0>();
     let rx0_word = pins.gpio5.into_function::<FunctionPio0>();
@@ -277,15 +348,7 @@ fn main() -> ! {
     ];
 
     let tide_controller = Control::new(
-        FbdivController::new(
-            4,
-            pll_sys,
-            PidSettings {
-                kp: I16F16::from_num(0.01),
-                ki: I16F16::from_num(0.00000001),
-                kd: I16F16::from_num(0.01),
-            },
-        ),
+        todo!("write Si5351 based controller"),
         Rxs::new(rx0, rx1, rx2, rx3),
         Txs::new(tx0, tx1, tx2, tx3),
         sio_fifo,
@@ -318,29 +381,6 @@ fn main() -> ! {
         pac.PPB.syst_calib.read().tenms().bits(),
     );
 
-    info!("Configuring Si5351");
-
-    let si5351_sda = pins.gpio26.into_function::<FunctionI2c>();
-    let si5351_scl = pins.gpio27.into_function::<FunctionI2c>();
-
-    let i2c = I2C::i2c1(
-        pac.I2C1,
-        si5351_sda,
-        si5351_scl,
-        100.kHz(),
-        &mut pac.RESETS,
-        &clocks.system_clock,
-    );
-
-    let mut clock = Si5351Device::new(i2c, false, 25_000_000);
-    clock
-        .init(si5351::CrystalLoad::_10)
-        .expect("Cannot init clock.");
-
-    clock
-        .set_frequency(si5351::PLL::A, si5351::ClockOutput::Clk0, 13_000_000)
-        .expect("Cannot set frequency");
-
     info!("Start.");
 
     // systick.enable_interrupt();
@@ -351,30 +391,10 @@ fn main() -> ! {
 
     let mut frequency = 1_000_000;
 
-    let (ms_divider, r_div) = clock
-        .find_int_dividers_for_max_pll_freq(900_000_000, 12_000_000)
-        .unwrap();
-    let r_div = match r_div {
-        OutputDivider::Div1 => 1,
-        OutputDivider::Div2 => 2,
-        OutputDivider::Div4 => 4,
-        OutputDivider::Div8 => 8,
-        OutputDivider::Div16 => 16,
-        OutputDivider::Div32 => 32,
-        OutputDivider::Div64 => 64,
-        OutputDivider::Div128 => 128,
-    };
-    let total_div = ms_divider as u32 * r_div as u32;
-    let denom = 1048575;
-    let (mult, num) = clock
-        .find_pll_coeffs_for_dividers(total_div, denom, 12_000_000)
-        .unwrap();
-
-    info!("mult={} num={} denom={}", mult, num, denom);
-
-    let mut num = 545369;
-
     let mut trigger_pin = pins.gpio28.into_push_pull_output();
+
+    // TODO: Run pico off this clock
+    // TODO: skip crystal oscillator in boot up (how to verify?)
 
     #[allow(clippy::empty_loop)]
     loop {
@@ -385,7 +405,7 @@ fn main() -> ! {
         trigger_pin.set_low().unwrap();
 
         clock
-            .setup_pll(PLL::A, 35, 0xfffff, 1048575)
+            .setup_pll(PLL::A, 35, 0x7ffff, 0xfffff)
             .expect("Cannot setup PLL");
 
         trigger_pin.set_high().unwrap();
@@ -394,9 +414,9 @@ fn main() -> ! {
             asm::nop();
         }
 
-        clock
-            .setup_pll(PLL::A, 35, 0, 1048575)
-            .expect("Cannot setup PLL");
+        // clock
+        //     .setup_pll(PLL::A, 35, 0, 1048575)
+        //     .expect("Cannot setup PLL");
     }
 }
 
