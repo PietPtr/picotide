@@ -10,3 +10,5 @@ rp-pico = { version = "0.8.0", default-features = false, features = ["rt", "crit
 fixed = "=1.27.0"
 heapless = { version = "0.8.0", features = ["defmt-03"] }
 defmt = "0.3.5"
+embedded-hal = { version = "0.2.7", features = ["unproven"] }
+si5351 = "0.2.0"

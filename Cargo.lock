@@ -132,9 +132,11 @@ name = "controllers"
 version = "0.1.0"
 dependencies = [
  "defmt",
+ "embedded-hal",
  "fixed",
  "heapless",
  "rp-pico",
+ "si5351",
 ]
 
 [[package]]
