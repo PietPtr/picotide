@@ -4,5 +4,7 @@ resolver = "2"
 
 members = [
     "experimental/*",
-    "controllers", "tide", 
+    "controllers", 
+    "bittide", 
+    "bittide-impls", 
     ]

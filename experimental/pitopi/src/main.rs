@@ -6,7 +6,7 @@
 #[used]
 pub static BOOT2_FIRMWARE: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
 
-use core::{cell::RefCell, u32};
+use core::cell::RefCell;
 
 use controllers::pid::PidSettings;
 use controllers::si5351::Si5351Controller;
@@ -22,12 +22,13 @@ use fugit::HertzU32;
 use fugit::RateExtU32;
 use panic_probe as _;
 use pio_proc::pio_file;
+use rp_pico::hal::gpin::GpIn0;
 use rp_pico::hal::gpio::bank0::Gpio21;
 use rp_pico::hal::gpio::bank0::Gpio26;
 use rp_pico::hal::gpio::bank0::Gpio27;
 use rp_pico::hal::gpio::Pin;
-use rp_pico::hal::gpio::PullDown;
 use rp_pico::hal::gpio::PullNone;
+use rp_pico::hal::gpio::PullUp;
 use rp_pico::hal::gpio::{FunctionClock, FunctionI2c};
 use rp_pico::hal::rosc::RingOscillator;
 use rp_pico::hal::I2C;
@@ -44,9 +45,9 @@ use rp_pico::{
     },
 };
 
+use bittide::bittide::{BittideChannelControl, Rxs, TideFifo, Txs};
 use si5351::Si5351;
 use si5351::Si5351Device;
-use tide::tide::{Rxs, TideChannelControl, TideFifo, Txs};
 
 pub const EXTERNAL_XTAL_FREQ_HZ: HertzU32 = HertzU32::from_raw(12_000_000u32);
 
@@ -65,12 +66,6 @@ fn main() -> ! {
     let mut pac = pac::Peripherals::take().unwrap();
     let core = pac::CorePeripherals::take().unwrap();
     let sio = Sio::new(pac.SIO);
-
-    info!(
-        "{:?} {}",
-        pac.CLOCKS.clk_sys_ctrl.read().src().bit(),
-        pac.CLOCKS.clk_sys_ctrl.read().auxsrc().bits()
-    );
 
     let mut clocks = ClocksManager::new(pac.CLOCKS);
 
@@ -94,14 +89,11 @@ fn main() -> ! {
 
     info!("Configuring Si5351");
 
-    let si5351_sda = pins.gpio26.into_function::<FunctionI2c>();
-    let si5351_scl = pins.gpio27.into_function::<FunctionI2c>();
-
     let i2c = I2C::i2c1(
         pac.I2C1,
-        si5351_sda,
-        si5351_scl,
-        400.kHz(),
+        pins.gpio26.reconfigure(),
+        pins.gpio27.reconfigure(),
+        100.kHz(),
         &mut pac.RESETS,
         &clocks.system_clock,
     );
@@ -127,16 +119,13 @@ fn main() -> ! {
     };
 
     // Set up clock to run from gpio input from Si5351 clock
-    // TODO: wait for upstream to pick up change
-    // let gpin0_pin = pins.gpio20.reconfigure();
-    // let gpin0: GpIn0 = GpIn0::new(gpin0_pin).set_frequency(GPIN_EXTERNAL_CLOCK_FREQ_HZ.Hz());
+    let gpin0_pin = pins.gpio20.reconfigure();
+    let gpin0: GpIn0 = GpIn0::new(gpin0_pin, EXTERNAL_XTAL_FREQ_HZ);
 
-    // let mut clocks = ClocksManager::new(pac.CLOCKS);
-
-    // clocks
-    //     .system_clock
-    //     .configure_clock(&gpin0, gpin0.get_freq())
-    //     .unwrap();
+    clocks
+        .system_clock
+        .configure_clock(&gpin0, gpin0.get_freq())
+        .unwrap();
 
     let (mut tx_pio, tx_sm0, tx_sm1, tx_sm2, tx_sm3) = pac.PIO1.split(&mut pac.RESETS);
     let (mut rx_pio, rx_sm0, rx_sm1, rx_sm2, rx_sm3) = pac.PIO0.split(&mut pac.RESETS);
@@ -154,10 +143,14 @@ fn main() -> ! {
     let tx2_clk = pins.gpio13.into_function::<FunctionPio1>();
     let tx2_word = pins.gpio14.into_function::<FunctionPio1>();
 
+    let tx3_data = pins.gpio18.into_function::<FunctionPio1>();
+    let tx3_clk = pins.gpio19.into_function::<FunctionPio1>();
+    let tx3_word = pins.gpio22.into_function::<FunctionPio1>();
+
     let pitopi_tx_program = pio_file!("src/programs.pio", select_program("pitopi_tx")).program;
     let tx_program = tx_pio.install(&pitopi_tx_program).unwrap();
 
-    let (mut tx_sm0, _rx0, tx0) = PIOBuilder::from_program(unsafe { tx_program.share() })
+    let (mut tx_sm0, _rx0, tx0) = PIOBuilder::from_installed_program(unsafe { tx_program.share() })
         .out_pins(tx0_data.id().num, 1)
         .side_set_pin_base(tx0_clk.id().num)
         .clock_divisor_fixed_point(4, 0)
@@ -171,7 +164,7 @@ fn main() -> ! {
 
     tx_sm0.start();
 
-    let (mut tx_sm1, _rx1, tx1) = PIOBuilder::from_program(unsafe { tx_program.share() })
+    let (mut tx_sm1, _rx1, tx1) = PIOBuilder::from_installed_program(unsafe { tx_program.share() })
         .out_pins(tx1_data.id().num, 1)
         .side_set_pin_base(tx1_clk.id().num)
         .clock_divisor_fixed_point(4, 0)
@@ -185,7 +178,7 @@ fn main() -> ! {
 
     tx_sm1.start();
 
-    let (mut tx_sm2, _rx2, tx2) = PIOBuilder::from_program(unsafe { tx_program.share() })
+    let (mut tx_sm2, _rx2, tx2) = PIOBuilder::from_installed_program(unsafe { tx_program.share() })
         .out_pins(tx2_data.id().num, 1)
         .side_set_pin_base(tx2_clk.id().num)
         .clock_divisor_fixed_point(4, 0)
@@ -199,11 +192,7 @@ fn main() -> ! {
 
     tx_sm2.start();
 
-    let tx3_data = pins.gpio18.into_function::<FunctionPio1>();
-    let tx3_clk = pins.gpio19.into_function::<FunctionPio1>();
-    let tx3_word = pins.gpio22.into_function::<FunctionPio1>();
-
-    let (mut tx_sm3, _rx3, tx3) = PIOBuilder::from_program(unsafe { tx_program.share() })
+    let (mut tx_sm3, _rx3, tx3) = PIOBuilder::from_installed_program(unsafe { tx_program.share() })
         .out_pins(tx3_data.id().num, 1)
         .side_set_pin_base(tx3_clk.id().num)
         .clock_divisor_fixed_point(4, 0)
@@ -236,7 +225,7 @@ fn main() -> ! {
     let pitopi_rx_program = pio_file!("src/programs.pio", select_program("pitopi_rx")).program;
     let rx_program = rx_pio.install(&pitopi_rx_program).unwrap();
 
-    let (mut rx_sm0, rx0, _tx0) = PIOBuilder::from_program(unsafe { rx_program.share() })
+    let (mut rx_sm0, rx0, _tx0) = PIOBuilder::from_installed_program(unsafe { rx_program.share() })
         .in_pin_base(rx0_data.id().num)
         .clock_divisor_fixed_point(1, 0)
         .build(rx_sm0);
@@ -247,7 +236,7 @@ fn main() -> ! {
         (rx0_word.id().num, PinDir::Input),
     ]);
 
-    let (mut rx_sm1, rx1, _tx1) = PIOBuilder::from_program(unsafe { rx_program.share() })
+    let (mut rx_sm1, rx1, _tx1) = PIOBuilder::from_installed_program(unsafe { rx_program.share() })
         .in_pin_base(rx1_data.id().num)
         .clock_divisor_fixed_point(1, 0)
         .build(rx_sm1);
@@ -258,7 +247,7 @@ fn main() -> ! {
         (rx1_word.id().num, PinDir::Input),
     ]);
 
-    let (mut rx_sm2, rx2, _tx2) = PIOBuilder::from_program(unsafe { rx_program.share() })
+    let (mut rx_sm2, rx2, _tx2) = PIOBuilder::from_installed_program(unsafe { rx_program.share() })
         .in_pin_base(rx2_data.id().num)
         .clock_divisor_fixed_point(1, 0)
         .build(rx_sm2);
@@ -269,7 +258,7 @@ fn main() -> ! {
         (rx2_word.id().num, PinDir::Input),
     ]);
 
-    let (mut rx_sm3, rx3, _tx3) = PIOBuilder::from_program(unsafe { rx_program.share() })
+    let (mut rx_sm3, rx3, _tx3) = PIOBuilder::from_installed_program(unsafe { rx_program.share() })
         .in_pin_base(rx3_data.id().num)
         .clock_divisor_fixed_point(1, 0)
         .build(rx_sm3);
@@ -332,13 +321,13 @@ fn main() -> ! {
     }
 }
 
-type Control = TideChannelControl<
+type Control = BittideChannelControl<
     Si5351Controller<
         I2C<
             I2C1,
             (
-                Pin<Gpio26, FunctionI2c, PullDown>,
-                Pin<Gpio27, FunctionI2c, PullDown>,
+                Pin<Gpio26, FunctionI2c, PullUp>,
+                Pin<Gpio27, FunctionI2c, PullUp>,
             ),
         >,
     >,

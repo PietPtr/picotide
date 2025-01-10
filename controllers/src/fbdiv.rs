@@ -25,7 +25,7 @@ pub struct FbdivController {
 
 impl FbdivController {
     pub fn new(degree: usize, pll_sys: PLL_SYS, pid_settings: PidSettings) -> Self {
-        let initial_fbdiv = pll_sys.fbdiv_int.read().fbdiv_int().bits();
+        let initial_fbdiv = pll_sys.fbdiv_int().read().fbdiv_int().bits();
 
         Self {
             degree,
@@ -38,7 +38,7 @@ impl FbdivController {
     }
 
     pub fn read_fbdiv(&self) -> u16 {
-        self.pll_sys.fbdiv_int.read().fbdiv_int().bits()
+        self.pll_sys.fbdiv_int().read().fbdiv_int().bits()
     }
 
     pub fn write_fbdiv(&mut self, new_fbdiv: i32) {
@@ -49,7 +49,7 @@ impl FbdivController {
         } as u16;
 
         self.pll_sys
-            .fbdiv_int
+            .fbdiv_int()
             .write(|w| unsafe { w.fbdiv_int().bits(new_fbdiv) });
     }
 }
@@ -71,7 +71,7 @@ impl<const B: usize> FrequencyController<B> for FbdivController {
                 buffer_levels,
                 half_full,
                 self.fbdiv_internal.to_num::<f32>(),
-                self.pll_sys.fbdiv_int.read().fbdiv_int().bits(),
+                self.pll_sys.fbdiv_int().read().fbdiv_int().bits(),
             );
 
             // for (i, (dbg, _)) in self.debug.iter().enumerate() {

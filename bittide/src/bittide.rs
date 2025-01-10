@@ -10,7 +10,7 @@ use rp_pico::{
 
 /// Generic over the frequency controller F, and the buffer size B.
 /// TODO: Hardcoded to a maximum of 4 neighbors
-pub struct TideChannelControl<F, const B: usize> {
+pub struct BittideChannelControl<F, const B: usize> {
     frequency_controller: F,
     rxs: Rxs,
     txs: Txs,
@@ -20,7 +20,7 @@ pub struct TideChannelControl<F, const B: usize> {
 
 const MAX_DEGREE: usize = 4;
 
-impl<F, const B: usize> TideChannelControl<F, B>
+impl<F, const B: usize> BittideChannelControl<F, B>
 where
     F: FrequencyController<B>,
 {
