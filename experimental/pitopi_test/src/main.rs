@@ -22,32 +22,27 @@ use fixed::types::I16F16;
 use fugit::HertzU32;
 use fugit::RateExtU32;
 use panic_probe as _;
-use pio_proc::pio_file;
 use pitopi::Pitopi;
 use rp_pico::hal::gpin::GpIn0;
 use rp_pico::hal::gpio::bank0::Gpio21;
-use rp_pico::hal::gpio::bank0::Gpio26;
-use rp_pico::hal::gpio::bank0::Gpio27;
+use rp_pico::hal::gpio::FunctionClock;
 use rp_pico::hal::gpio::Pin;
 use rp_pico::hal::gpio::PullNone;
-use rp_pico::hal::gpio::PullUp;
-use rp_pico::hal::gpio::{FunctionClock, FunctionI2c};
 use rp_pico::hal::rosc::RingOscillator;
 use rp_pico::hal::I2C;
 use rp_pico::pac;
-use rp_pico::pac::I2C1;
 use rp_pico::{
     entry,
     hal::{
         clocks::{Clock, ClockSource, ClocksManager},
         gpio::{self, FunctionPio0, FunctionPio1},
-        pio::{PIOBuilder, PIOExt, PinDir},
+        pio::PIOExt,
         pll::PLLConfig,
         sio::Sio,
     },
 };
 
-use bittide::bittide::{BittideChannelControl, BittideFifo};
+use bittide::bittide::BittideFifo;
 use si5351::Si5351;
 use si5351::Si5351Device;
 
@@ -66,7 +61,7 @@ pub const CLOCKS_PER_SYNC_WORD: u32 = 4096;
 #[entry]
 fn main() -> ! {
     let mut pac = pac::Peripherals::take().unwrap();
-    let core = pac::CorePeripherals::take().unwrap();
+    let mut core = pac::CorePeripherals::take().unwrap();
     let sio = Sio::new(pac.SIO);
 
     let mut clocks = ClocksManager::new(pac.CLOCKS);
@@ -201,7 +196,7 @@ fn main() -> ! {
         BittideFifo::new(),
     ];
 
-    let tide_controller = Control::new(
+    let tide_controller = bittide_impls::boards::pico1_and_si5351::Control::new(
         Si5351Controller::new(
             si_clock,
             4,
@@ -220,15 +215,8 @@ fn main() -> ! {
         GLOBAL_CONTROL.borrow(cs).replace(Some(tide_controller));
     });
 
-    let mut systick = core.SYST;
-    systick.set_reload(CLOCKS_PER_SYNC_WORD - 1);
-    systick.clear_current();
-    systick.enable_counter();
-    systick.set_clock_source(SystClkSource::Core);
-
     info!("Start.");
-
-    systick.enable_interrupt();
+    bittide_impls::chips::rp2040::setup_interrupt(CLOCKS_PER_SYNC_WORD, &mut core.SYST);
 
     #[allow(clippy::empty_loop)]
     loop {
@@ -238,27 +226,12 @@ fn main() -> ! {
     }
 }
 
-type Control = BittideChannelControl<
-    Si5351Controller<
-        I2C<
-            I2C1,
-            (
-                Pin<Gpio26, FunctionI2c, PullUp>,
-                Pin<Gpio27, FunctionI2c, PullUp>,
-            ),
-        >,
-    >,
-    64,
-    Rp2040Links,
-    4,
-    bittide_impls::chips::rp2040::SioFifo,
->;
-
-static GLOBAL_CONTROL: Mutex<RefCell<Option<Control>>> = Mutex::new(RefCell::new(None));
+static GLOBAL_CONTROL: Mutex<RefCell<Option<bittide_impls::boards::pico1_and_si5351::Control>>> =
+    Mutex::new(RefCell::new(None));
 
 #[exception]
 fn SysTick() {
-    static mut CONTROL: Option<Control> = None;
+    static mut CONTROL: Option<bittide_impls::boards::pico1_and_si5351::Control> = None;
 
     if CONTROL.is_none() {
         critical_section::with(|cs| {

@@ -101,6 +101,8 @@ version = "0.1.0"
 dependencies = [
  "bittide",
  "controllers",
+ "cortex-m",
+ "critical-section",
  "heapless",
  "rp-pico",
 ]

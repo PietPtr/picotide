@@ -1,9 +1,10 @@
 use bittide::bittide::{BittideMessage, Fifo, Links};
+use cortex_m::peripheral::syst::SystClkSource;
 use heapless::Vec;
 // TODO: should not really import from rp_pico but from the rp2040 crates
 use rp_pico::{
     hal::pio::{Rx, Tx, SM0, SM1, SM2, SM3},
-    pac::{PIO0, PIO1},
+    pac::{PIO0, PIO1, SYST},
 };
 
 pub struct Rp2040Links {
@@ -159,4 +160,32 @@ impl Fifo for SioFifo {
     fn write(&mut self, data: u32) {
         self.0.write(data);
     }
+}
+
+/// Requires a setup like this in the main to define what happens on the systick connection:
+///
+/// ```rust
+/// static GLOBAL_CONTROL: Mutex<RefCell<Option<bittide_impls::boards::pico1_and_si5351::Control>>> = Mutex::new(RefCell::new(None));
+///
+/// #[exception]
+/// fn SysTick() {
+///     static mut CONTROL: Option<bittide_impls::boards::pico1_and_si5351::Control> = None;
+///
+///     if CONTROL.is_none() {
+///         critical_section::with(|cs| {
+///             let _ = CONTROL.insert(GLOBAL_CONTROL.borrow(cs).take().unwrap());
+///         });
+///     }
+///
+///     if let Some(control) = CONTROL {
+///         control.interrupt();
+///     }
+/// }
+/// ```
+pub fn setup_interrupt(clocks_per_sync_word: u32, systick: &mut SYST) {
+    systick.set_reload(clocks_per_sync_word - 1);
+    systick.clear_current();
+    systick.enable_counter();
+    systick.set_clock_source(SystClkSource::Core);
+    systick.enable_interrupt();
 }

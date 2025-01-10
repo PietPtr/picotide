@@ -1,5 +1,8 @@
+use core::cell::RefCell;
+
 use bittide::bittide::BittideChannelControl;
 use controllers::si5351::Si5351Controller;
+use critical_section::Mutex;
 use rp_pico::{
     hal::{
         gpio::{
@@ -13,7 +16,7 @@ use rp_pico::{
 
 use crate::chips::rp2040::Rp2040Links;
 
-type Control = BittideChannelControl<
+pub type Control = BittideChannelControl<
     Si5351Controller<
         I2C<
             I2C1,
