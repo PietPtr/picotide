@@ -1,7 +1,8 @@
+#![no_std]
 use pio_proc::pio_file;
 use rp_pico::{
     hal::{
-        gpio::{DynPinId, Function, Pin, PullDown},
+        gpio::{DynPinId, FunctionPio0, FunctionPio1, Pin, PullDown},
         pio::{
             InstalledProgram, PIOBuilder, PinDir, Running, Rx, StateMachine, StateMachineIndex, Tx,
             UninitStateMachine, PIO,
@@ -26,6 +27,15 @@ type LinkStateMachines<RXSM, TXSM> = (
 );
 
 impl Pitopi {
+    pub fn new(rx_pio: PIO<PIO0>, tx_pio: PIO<PIO1>) -> Self {
+        Self {
+            rx_pio,
+            tx_pio,
+            rx_program: None,
+            tx_program: None,
+        }
+    }
+
     pub fn install_programs(&mut self) {
         let pitopi_tx_program = pio_file!("src/programs.pio", select_program("pitopi_tx")).program;
         self.tx_program = Some(self.tx_pio.install(&pitopi_tx_program).unwrap());
@@ -35,16 +45,16 @@ impl Pitopi {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn setup_link<FPIO: Function, RXSM, TXSM>(
+    pub fn setup_link<RXSM, TXSM>(
         &mut self,
         rx_sm: UninitStateMachine<(PIO0, RXSM)>,
-        rx_data_pin: Pin<DynPinId, FPIO, PullDown>,
-        rx_clk_pin: Pin<DynPinId, FPIO, PullDown>,
-        rx_word_pin: Pin<DynPinId, FPIO, PullDown>,
+        rx_data_pin: Pin<DynPinId, FunctionPio0, PullDown>,
+        rx_clk_pin: Pin<DynPinId, FunctionPio0, PullDown>,
+        rx_word_pin: Pin<DynPinId, FunctionPio0, PullDown>,
         tx_sm: UninitStateMachine<(PIO1, TXSM)>,
-        tx_data_pin: Pin<DynPinId, FPIO, PullDown>,
-        tx_clk_pin: Pin<DynPinId, FPIO, PullDown>,
-        tx_word_pin: Pin<DynPinId, FPIO, PullDown>,
+        tx_data_pin: Pin<DynPinId, FunctionPio1, PullDown>,
+        tx_clk_pin: Pin<DynPinId, FunctionPio1, PullDown>,
+        tx_word_pin: Pin<DynPinId, FunctionPio1, PullDown>,
     ) -> Result<LinkStateMachines<RXSM, TXSM>, PitopiError>
     where
         RXSM: StateMachineIndex,
@@ -89,8 +99,13 @@ impl Pitopi {
 
         Ok((rx_sm, rx_fifo, tx_sm, tx_fifo))
     }
+
+    pub fn free(self) -> (PIO<PIO0>, PIO<PIO1>) {
+        (self.rx_pio, self.tx_pio)
+    }
 }
 
+#[derive(Debug)]
 pub enum PitopiError {
     TxProgramNotInstalled,
     RxProgramNotInstalled,

@@ -25,5 +25,6 @@ heapless = { version = "0.8.0", features = ["defmt-03"] }
 controllers = { path = "../../controllers" }
 bittide = { path = "../../bittide" }
 bittide-impls = { path = "../../bittide-impls" }
+pitopi = { path = "../../pitopi" }
 fixed = "=1.27.0"
 si5351 = "0.2.0"

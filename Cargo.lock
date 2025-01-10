@@ -773,6 +773,7 @@ dependencies = [
  "panic-probe",
  "pio",
  "pio-proc",
+ "pitopi",
  "rp-pico",
  "rp2040-boot2 0.2.1",
  "si5351",

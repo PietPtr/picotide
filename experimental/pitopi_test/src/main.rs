@@ -23,6 +23,7 @@ use fugit::HertzU32;
 use fugit::RateExtU32;
 use panic_probe as _;
 use pio_proc::pio_file;
+use pitopi::Pitopi;
 use rp_pico::hal::gpin::GpIn0;
 use rp_pico::hal::gpio::bank0::Gpio21;
 use rp_pico::hal::gpio::bank0::Gpio26;
@@ -128,147 +129,68 @@ fn main() -> ! {
         .configure_clock(&gpin0, gpin0.get_freq())
         .unwrap();
 
-    let (mut tx_pio, tx_sm0, tx_sm1, tx_sm2, tx_sm3) = pac.PIO1.split(&mut pac.RESETS);
-    let (mut rx_pio, rx_sm0, rx_sm1, rx_sm2, rx_sm3) = pac.PIO0.split(&mut pac.RESETS);
+    let (rx_pio, rx_sm0, rx_sm1, rx_sm2, rx_sm3) = pac.PIO0.split(&mut pac.RESETS);
+    let (tx_pio, tx_sm0, tx_sm1, tx_sm2, tx_sm3) = pac.PIO1.split(&mut pac.RESETS);
 
-    // Set up 4 TX channels
-    let tx0_data = pins.gpio0.into_function::<FunctionPio1>();
-    let tx0_clk = pins.gpio1.into_function::<FunctionPio1>();
-    let tx0_word = pins.gpio2.into_function::<FunctionPio1>();
+    let rx0_data = pins.gpio3.into_function::<FunctionPio0>().into_dyn_pin();
+    let rx0_clk = pins.gpio4.into_function::<FunctionPio0>().into_dyn_pin();
+    let rx0_word = pins.gpio5.into_function::<FunctionPio0>().into_dyn_pin();
 
-    let tx1_data = pins.gpio6.into_function::<FunctionPio1>();
-    let tx1_clk = pins.gpio7.into_function::<FunctionPio1>();
-    let tx1_word = pins.gpio8.into_function::<FunctionPio1>();
+    let rx1_data = pins.gpio9.into_function::<FunctionPio0>().into_dyn_pin();
+    let rx1_clk = pins.gpio10.into_function::<FunctionPio0>().into_dyn_pin();
+    let rx1_word = pins.gpio11.into_function::<FunctionPio0>().into_dyn_pin();
 
-    let tx2_data = pins.gpio12.into_function::<FunctionPio1>();
-    let tx2_clk = pins.gpio13.into_function::<FunctionPio1>();
-    let tx2_word = pins.gpio14.into_function::<FunctionPio1>();
+    let rx2_data = pins.gpio15.into_function::<FunctionPio0>().into_dyn_pin();
+    let rx2_clk = pins.gpio16.into_function::<FunctionPio0>().into_dyn_pin();
+    let rx2_word = pins.gpio17.into_function::<FunctionPio0>().into_dyn_pin();
 
-    let tx3_data = pins.gpio18.into_function::<FunctionPio1>();
-    let tx3_clk = pins.gpio19.into_function::<FunctionPio1>();
-    let tx3_word = pins.gpio22.into_function::<FunctionPio1>();
+    let rx3_data = pins.gpio23.into_function::<FunctionPio0>().into_dyn_pin();
+    let rx3_clk = pins.gpio24.into_function::<FunctionPio0>().into_dyn_pin();
+    let rx3_word = pins.gpio25.into_function::<FunctionPio0>().into_dyn_pin();
 
-    let pitopi_tx_program = pio_file!("src/programs.pio", select_program("pitopi_tx")).program;
-    let tx_program = tx_pio.install(&pitopi_tx_program).unwrap();
+    let tx0_data = pins.gpio0.into_function::<FunctionPio1>().into_dyn_pin();
+    let tx0_clk = pins.gpio1.into_function::<FunctionPio1>().into_dyn_pin();
+    let tx0_word = pins.gpio2.into_function::<FunctionPio1>().into_dyn_pin();
 
-    let (mut tx_sm0, _rx0, tx0) = PIOBuilder::from_installed_program(unsafe { tx_program.share() })
-        .out_pins(tx0_data.id().num, 1)
-        .side_set_pin_base(tx0_clk.id().num)
-        .clock_divisor_fixed_point(4, 0)
-        .build(tx_sm0);
+    let tx1_data = pins.gpio6.into_function::<FunctionPio1>().into_dyn_pin();
+    let tx1_clk = pins.gpio7.into_function::<FunctionPio1>().into_dyn_pin();
+    let tx1_word = pins.gpio8.into_function::<FunctionPio1>().into_dyn_pin();
 
-    tx_sm0.set_pindirs([
-        (tx0_data.id().num, PinDir::Output),
-        (tx0_clk.id().num, PinDir::Output),
-        (tx0_word.id().num, PinDir::Output),
-    ]);
+    let tx2_data = pins.gpio12.into_function::<FunctionPio1>().into_dyn_pin();
+    let tx2_clk = pins.gpio13.into_function::<FunctionPio1>().into_dyn_pin();
+    let tx2_word = pins.gpio14.into_function::<FunctionPio1>().into_dyn_pin();
 
-    tx_sm0.start();
+    let tx3_data = pins.gpio18.into_function::<FunctionPio1>().into_dyn_pin();
+    let tx3_clk = pins.gpio19.into_function::<FunctionPio1>().into_dyn_pin();
+    let tx3_word = pins.gpio22.into_function::<FunctionPio1>().into_dyn_pin();
 
-    let (mut tx_sm1, _rx1, tx1) = PIOBuilder::from_installed_program(unsafe { tx_program.share() })
-        .out_pins(tx1_data.id().num, 1)
-        .side_set_pin_base(tx1_clk.id().num)
-        .clock_divisor_fixed_point(4, 0)
-        .build(tx_sm1);
+    let mut pitopi = Pitopi::new(rx_pio, tx_pio);
 
-    tx_sm1.set_pindirs([
-        (tx1_data.id().num, PinDir::Output),
-        (tx1_clk.id().num, PinDir::Output),
-        (tx1_word.id().num, PinDir::Output),
-    ]);
+    pitopi.install_programs();
 
-    tx_sm1.start();
+    let (_, rx0, _, tx0) = pitopi
+        .setup_link(
+            rx_sm0, rx0_data, rx0_clk, rx0_word, tx_sm0, tx0_data, tx0_clk, tx0_word,
+        )
+        .unwrap();
 
-    let (mut tx_sm2, _rx2, tx2) = PIOBuilder::from_installed_program(unsafe { tx_program.share() })
-        .out_pins(tx2_data.id().num, 1)
-        .side_set_pin_base(tx2_clk.id().num)
-        .clock_divisor_fixed_point(4, 0)
-        .build(tx_sm2);
+    let (_, rx1, _, tx1) = pitopi
+        .setup_link(
+            rx_sm1, rx1_data, rx1_clk, rx1_word, tx_sm1, tx1_data, tx1_clk, tx1_word,
+        )
+        .unwrap();
 
-    tx_sm2.set_pindirs([
-        (tx2_data.id().num, PinDir::Output),
-        (tx2_clk.id().num, PinDir::Output),
-        (tx2_word.id().num, PinDir::Output),
-    ]);
+    let (_, rx2, _, tx2) = pitopi
+        .setup_link(
+            rx_sm2, rx2_data, rx2_clk, rx2_word, tx_sm2, tx2_data, tx2_clk, tx2_word,
+        )
+        .unwrap();
 
-    tx_sm2.start();
-
-    let (mut tx_sm3, _rx3, tx3) = PIOBuilder::from_installed_program(unsafe { tx_program.share() })
-        .out_pins(tx3_data.id().num, 1)
-        .side_set_pin_base(tx3_clk.id().num)
-        .clock_divisor_fixed_point(4, 0)
-        .build(tx_sm3);
-
-    tx_sm3.set_pindirs([
-        (tx3_data.id().num, PinDir::Output),
-        (tx3_clk.id().num, PinDir::Output),
-        (tx3_word.id().num, PinDir::Output),
-    ]);
-
-    tx_sm3.start();
-
-    let rx0_data = pins.gpio3.into_function::<FunctionPio0>();
-    let rx0_clk = pins.gpio4.into_function::<FunctionPio0>();
-    let rx0_word = pins.gpio5.into_function::<FunctionPio0>();
-
-    let rx1_data = pins.gpio9.into_function::<FunctionPio0>();
-    let rx1_clk = pins.gpio10.into_function::<FunctionPio0>();
-    let rx1_word = pins.gpio11.into_function::<FunctionPio0>();
-
-    let rx2_data = pins.gpio15.into_function::<FunctionPio0>();
-    let rx2_clk = pins.gpio16.into_function::<FunctionPio0>();
-    let rx2_word = pins.gpio17.into_function::<FunctionPio0>();
-
-    let rx3_data = pins.gpio23.into_function::<FunctionPio0>();
-    let rx3_clk = pins.gpio24.into_function::<FunctionPio0>();
-    let rx3_word = pins.gpio25.into_function::<FunctionPio0>();
-
-    let pitopi_rx_program = pio_file!("src/programs.pio", select_program("pitopi_rx")).program;
-    let rx_program = rx_pio.install(&pitopi_rx_program).unwrap();
-
-    let (mut rx_sm0, rx0, _tx0) = PIOBuilder::from_installed_program(unsafe { rx_program.share() })
-        .in_pin_base(rx0_data.id().num)
-        .clock_divisor_fixed_point(1, 0)
-        .build(rx_sm0);
-
-    rx_sm0.set_pindirs([
-        (rx0_data.id().num, PinDir::Input),
-        (rx0_clk.id().num, PinDir::Input),
-        (rx0_word.id().num, PinDir::Input),
-    ]);
-
-    let (mut rx_sm1, rx1, _tx1) = PIOBuilder::from_installed_program(unsafe { rx_program.share() })
-        .in_pin_base(rx1_data.id().num)
-        .clock_divisor_fixed_point(1, 0)
-        .build(rx_sm1);
-
-    rx_sm1.set_pindirs([
-        (rx1_data.id().num, PinDir::Input),
-        (rx1_clk.id().num, PinDir::Input),
-        (rx1_word.id().num, PinDir::Input),
-    ]);
-
-    let (mut rx_sm2, rx2, _tx2) = PIOBuilder::from_installed_program(unsafe { rx_program.share() })
-        .in_pin_base(rx2_data.id().num)
-        .clock_divisor_fixed_point(1, 0)
-        .build(rx_sm2);
-
-    rx_sm2.set_pindirs([
-        (rx2_data.id().num, PinDir::Input),
-        (rx2_clk.id().num, PinDir::Input),
-        (rx2_word.id().num, PinDir::Input),
-    ]);
-
-    let (mut rx_sm3, rx3, _tx3) = PIOBuilder::from_installed_program(unsafe { rx_program.share() })
-        .in_pin_base(rx3_data.id().num)
-        .clock_divisor_fixed_point(1, 0)
-        .build(rx_sm3);
-
-    rx_sm3.set_pindirs([
-        (rx3_data.id().num, PinDir::Input),
-        (rx3_clk.id().num, PinDir::Input),
-        (rx3_word.id().num, PinDir::Input),
-    ]);
+    let (_, rx3, _, tx3) = pitopi
+        .setup_link(
+            rx_sm3, rx3_data, rx3_clk, rx3_word, tx_sm3, tx3_data, tx3_clk, tx3_word,
+        )
+        .unwrap();
 
     let sio_fifo = sio.fifo;
 
@@ -306,12 +228,7 @@ fn main() -> ! {
 
     info!("Start.");
 
-    // TODO: enable
     systick.enable_interrupt();
-    rx_sm0.start();
-    rx_sm1.start();
-    rx_sm2.start();
-    rx_sm3.start();
 
     #[allow(clippy::empty_loop)]
     loop {
