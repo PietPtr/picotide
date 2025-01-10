@@ -8,6 +8,7 @@ pub static BOOT2_FIRMWARE: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
 
 use core::cell::RefCell;
 
+use bittide_impls::chips::rp2040::Rp2040Links;
 use controllers::pid::PidSettings;
 use controllers::si5351::Si5351Controller;
 use cortex_m::asm;
@@ -45,7 +46,7 @@ use rp_pico::{
     },
 };
 
-use bittide::bittide::{BittideChannelControl, Rxs, TideFifo, Txs};
+use bittide::bittide::{BittideChannelControl, BittideFifo};
 use si5351::Si5351;
 use si5351::Si5351Device;
 
@@ -272,10 +273,10 @@ fn main() -> ! {
     let sio_fifo = sio.fifo;
 
     let tide_fifos = [
-        TideFifo::new(),
-        TideFifo::new(),
-        TideFifo::new(),
-        TideFifo::new(),
+        BittideFifo::new(),
+        BittideFifo::new(),
+        BittideFifo::new(),
+        BittideFifo::new(),
     ];
 
     let tide_controller = Control::new(
@@ -288,9 +289,8 @@ fn main() -> ! {
                 kd: I16F16::from_num(0.01),
             },
         ),
-        Rxs::new(rx0, rx1, rx2, rx3),
-        Txs::new(tx0, tx1, tx2, tx3),
-        sio_fifo,
+        Rp2040Links::new(rx0, rx1, rx2, rx3, tx0, tx1, tx2, tx3),
+        bittide_impls::chips::rp2040::SioFifo(sio_fifo),
         tide_fifos,
     );
 
@@ -307,7 +307,7 @@ fn main() -> ! {
     info!("Start.");
 
     // TODO: enable
-    // systick.enable_interrupt();
+    systick.enable_interrupt();
     rx_sm0.start();
     rx_sm1.start();
     rx_sm2.start();
@@ -332,6 +332,9 @@ type Control = BittideChannelControl<
         >,
     >,
     64,
+    Rp2040Links,
+    4,
+    bittide_impls::chips::rp2040::SioFifo,
 >;
 
 static GLOBAL_CONTROL: Mutex<RefCell<Option<Control>>> = Mutex::new(RefCell::new(None));

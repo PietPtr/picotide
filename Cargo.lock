@@ -93,14 +93,17 @@ dependencies = [
  "controllers",
  "heapless",
  "log",
- "pio",
- "pio-proc",
- "rp-pico",
 ]
 
 [[package]]
 name = "bittide-impls"
 version = "0.1.0"
+dependencies = [
+ "bittide",
+ "controllers",
+ "heapless",
+ "rp-pico",
+]
 
 [[package]]
 name = "bytemuck"
@@ -733,7 +736,29 @@ dependencies = [
 name = "pitopi"
 version = "0.1.0"
 dependencies = [
+ "cortex-m",
+ "cortex-m-rt",
+ "critical-section",
+ "defmt",
+ "defmt-rtt",
+ "embedded-hal 0.2.7",
+ "fixed",
+ "fugit",
+ "heapless",
+ "log",
+ "panic-probe",
+ "pio",
+ "pio-proc",
+ "rp-pico",
+ "rp2040-boot2 0.2.1",
+]
+
+[[package]]
+name = "pitopi_test"
+version = "0.1.0"
+dependencies = [
  "bittide",
+ "bittide-impls",
  "controllers",
  "cortex-m",
  "cortex-m-rt",

@@ -2,10 +2,9 @@
 name = "pitopi"
 version = "0.1.0"
 edition = "2021"
-description = "Demo and test bed of pico to pico communication over custom PIO based protocol."
+description = "Extremely simplistic 3-wire communication protocol implemented on PIO"
 
-# TODO: turn this into a library crate
-
+# TODO: clean up unecessary stuff
 [dependencies]
 cortex-m = "0.7"
 cortex-m-rt = "0.7"
@@ -14,7 +13,6 @@ log = "0.4.22"
 defmt = "0.3.5"
 defmt-rtt = "0.4"
 panic-probe = { version = "0.3", features = ["print-defmt"] }
-# rp-pico = { version = "0.8.0", default-features = false, features = ["rt", "critical-section-impl", "rom-func-cache"] }
 rp-pico = { git = "https://github.com/PietPtr/rp-hal-boards", branch = "main" }
 fugit = "0.3.7"
 rp2040-boot2 = "0.2.1"
@@ -22,7 +20,5 @@ pio-proc = "0.2.2"
 pio = "0.2.1"
 critical-section = "1.2.0"
 heapless = { version = "0.8.0", features = ["defmt-03"] }
-controllers = { path = "../../controllers" }
-bittide = { path = "../../bittide" }
 fixed = "=1.27.0"
-si5351 = "0.2.0"
+

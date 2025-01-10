@@ -6,10 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-# rp-pico = { version = "0.8.0", default-features = false, features = ["rt", "critical-section-impl", "rom-func-cache"] }
-rp-pico = { git = "https://github.com/PietPtr/rp-hal-boards", branch = "main" }
 controllers = { path = "../controllers" }
 heapless = { version = "0.8.0", features = ["defmt-03"] }
-pio-proc = "0.2.2"
-pio = "0.2.1"
 log = "0.4.22"
