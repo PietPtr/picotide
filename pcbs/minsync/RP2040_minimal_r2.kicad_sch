@@ -7580,6 +7580,15 @@
 				(hide yes)
 			)
 		)
+		(property "LCSC" "C2040"
+			(at 198.12 144.78 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
 		(pin "1"
 			(uuid "e4676de0-0c87-4c16-82cf-8f94dd7bf6d7")
 		)
@@ -7804,6 +7813,15 @@
 			)
 		)
 		(property "Description" ""
+			(at 97.79 133.35 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "LCSC" "C97521"
 			(at 97.79 133.35 0)
 			(effects
 				(font
@@ -9828,6 +9846,15 @@
 				(hide yes)
 			)
 		)
+		(property "LCSC" "C154606"
+			(at 76.2 44.45 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
 		(pin "1"
 			(uuid "a5c8f2f1-e9f8-42b1-85f3-f5775a334c8c")
 		)
@@ -10667,7 +10694,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Button_Switch_SMD:SW_Push_SPST_NO_Alps_SKRK"
+		(property "Footprint" "RP2040_minimal:TS-1187A-PushButton"
 			(at 26.67 120.65 0)
 			(effects
 				(font
@@ -10686,6 +10713,15 @@
 			)
 		)
 		(property "Description" "Push button switch, generic, two pins"
+			(at 26.67 125.73 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "LCSC" "C72443"
 			(at 26.67 125.73 0)
 			(effects
 				(font
@@ -11023,6 +11059,15 @@
 			)
 		)
 		(property "Description" "Generic connector, double row, 02x05, odd/even pin numbering scheme (row 1 odd numbers, row 2 even numbers), script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 350.52 31.75 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "LCSC" "C225520"
 			(at 350.52 31.75 0)
 			(effects
 				(font
@@ -11908,6 +11953,15 @@
 			)
 		)
 		(property "Description" "I2C Programmable Any-Frequency CMOS Clock Generator, MSOP-8"
+			(at 87.63 234.95 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "LCSC" "C504891"
 			(at 87.63 234.95 0)
 			(effects
 				(font
@@ -12909,6 +12963,15 @@
 			)
 		)
 		(property "Description" "Four pin crystal, GND on pins 2 and 4"
+			(at 50.8 227.33 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "LCSC" "C1985619"
 			(at 50.8 227.33 0)
 			(effects
 				(font
