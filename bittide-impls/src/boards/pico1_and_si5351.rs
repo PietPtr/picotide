@@ -1,8 +1,5 @@
-use core::cell::RefCell;
-
 use bittide::bittide::BittideChannelControl;
 use controllers::si5351::Si5351Controller;
-use critical_section::Mutex;
 use rp_pico::{
     hal::{
         gpio::{

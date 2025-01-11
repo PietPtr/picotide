@@ -8,11 +8,9 @@ pub static BOOT2_FIRMWARE: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
 
 use core::cell::RefCell;
 
-use bittide_impls::chips::rp2040::Rp2040Links;
 use controllers::pid::PidSettings;
 use controllers::si5351::Si5351Controller;
 use cortex_m::asm;
-use cortex_m::peripheral::syst::SystClkSource;
 use cortex_m_rt::exception;
 use critical_section::Mutex;
 #[allow(unused_imports)]
@@ -43,6 +41,7 @@ use rp_pico::{
 };
 
 use bittide::bittide::BittideFifo;
+use bittide_impls::chips::rp2040::Rp2040Links;
 use si5351::Si5351;
 use si5351::Si5351Device;
 

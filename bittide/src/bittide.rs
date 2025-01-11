@@ -44,7 +44,7 @@ where
             match message {
                 BittideMessage::SyncMessage => panic!("unexpected"),
                 BittideMessage::CommMessage { neighbor, data: _ } => {
-                    let neighbor = neighbor as usize;
+                    let neighbor: usize = neighbor as usize;
                     if (neighbor) < 4 {
                         messages[neighbor] = message;
                     } else {

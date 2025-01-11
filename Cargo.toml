@@ -7,5 +7,5 @@ members = [
     "pitopi", 
     "controllers", 
     "bittide", 
-    "bittide-impls", 
+    "bittide-impls", "bitsurf", 
     ]
