@@ -699,6 +699,32 @@ dependencies = [
 ]
 
 [[package]]
+name = "pico_on_breadboard"
+version = "0.1.0"
+dependencies = [
+ "bittide",
+ "bittide-impls",
+ "controllers",
+ "cortex-m",
+ "cortex-m-rt",
+ "critical-section",
+ "defmt",
+ "defmt-rtt",
+ "embedded-hal 0.2.7",
+ "fixed",
+ "fugit",
+ "heapless",
+ "log",
+ "panic-probe",
+ "pio",
+ "pio-proc",
+ "pitopi",
+ "rp-pico",
+ "rp2040-boot2 0.2.1",
+ "si5351",
+]
+
+[[package]]
 name = "pio"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

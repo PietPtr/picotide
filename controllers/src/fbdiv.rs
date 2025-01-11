@@ -104,7 +104,6 @@ impl<const B: usize> FrequencyController<B> for FbdivController {
     }
 
     fn set_degree(&mut self, new_degree: usize) {
-        defmt::info!("set degree: {} -> {}", self.degree, new_degree);
         self.degree = new_degree
     }
 }

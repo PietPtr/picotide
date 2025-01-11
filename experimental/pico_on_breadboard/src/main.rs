@@ -8,6 +8,7 @@ pub static BOOT2_FIRMWARE: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
 
 use core::cell::RefCell;
 
+use controllers::fbdiv::FbdivController;
 use controllers::pid::PidSettings;
 use controllers::si5351::Si5351Controller;
 use cortex_m::asm;
@@ -16,7 +17,6 @@ use critical_section::Mutex;
 #[allow(unused_imports)]
 use defmt::{error, info, warn};
 use defmt_rtt as _;
-use embedded_hal::digital::v2::ToggleableOutputPin;
 use fixed::types::I16F16;
 use fugit::HertzU32;
 use fugit::RateExtU32;
@@ -27,7 +27,9 @@ use rp_pico::hal::gpio::bank0::Gpio21;
 use rp_pico::hal::gpio::FunctionClock;
 use rp_pico::hal::gpio::Pin;
 use rp_pico::hal::gpio::PullNone;
+use rp_pico::hal::pll::setup_pll_blocking;
 use rp_pico::hal::rosc::RingOscillator;
+use rp_pico::hal::xosc::setup_xosc_blocking;
 use rp_pico::hal::I2C;
 use rp_pico::pac;
 use rp_pico::{
@@ -43,20 +45,18 @@ use rp_pico::{
 
 use bittide::bittide::BittideFifo;
 use bittide_impls::chips::rp2040::Rp2040Links;
-use si5351::Si5351;
-use si5351::Si5351Device;
 
 pub const EXTERNAL_XTAL_FREQ_HZ: HertzU32 = HertzU32::from_raw(12_000_000u32);
 
 pub const SYS_PLL_CONFIG_100MHZ: PLLConfig = PLLConfig {
     vco_freq: HertzU32::MHz(1200),
     refdiv: 1,
-    post_div1: 6,
-    post_div2: 3,
+    post_div1: 5,
+    post_div2: 2,
 };
 
 /// The divisor of how many CPU cycles should pass before a new word is sent to all neigboring nodes.
-pub const CLOCKS_PER_SYNC_WORD: u32 = 4096;
+pub const CLOCKS_PER_SYNC_WORD: u32 = 1024;
 
 #[entry]
 fn main() -> ! {
@@ -73,39 +73,33 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    // Run of Ring oscillatior (should be the default, unless other software has made changes to clocking, so set on startup)
-    let rosc = RingOscillator::new(pac.ROSC);
-    let rosc = rosc.initialize();
-
-    clocks
-        .system_clock
-        .configure_clock(&rosc, rosc.get_freq())
-        .unwrap();
-
-    info!("Set clock to rosc {:?}MHz", rosc.get_freq().to_MHz());
-
-    info!("Configuring Si5351");
-
     pins.gpio25
         .into_push_pull_output_in_state(gpio::PinState::High);
 
-    let i2c = I2C::i2c1(
-        pac.I2C1,
-        pins.gpio26.reconfigure(),
-        pins.gpio27.reconfigure(),
-        100.kHz(),
+    let xosc = setup_xosc_blocking(pac.XOSC, EXTERNAL_XTAL_FREQ_HZ).unwrap();
+
+    let locked_pll_sys = setup_pll_blocking(
+        pac.PLL_SYS,
+        xosc.operating_frequency(),
+        SYS_PLL_CONFIG_100MHZ,
+        &mut clocks,
         &mut pac.RESETS,
-        &clocks.system_clock,
+    )
+    .unwrap();
+
+    clocks
+        .system_clock
+        .configure_clock(&locked_pll_sys, locked_pll_sys.get_freq())
+        .unwrap();
+
+    let freq = locked_pll_sys.get_freq().to_Hz() as f32 / 1e6;
+    let pll_sys = locked_pll_sys.free();
+
+    info!(
+        "Configured system clock at frequency: {:?}MHz (fbdiv={})",
+        freq,
+        pll_sys.fbdiv_int().read().fbdiv_int().bits()
     );
-
-    let mut si_clock = Si5351Device::new(i2c, false, 25_000_000);
-    si_clock
-        .init(si5351::CrystalLoad::_10)
-        .expect("Cannot init clock.");
-
-    si_clock
-        .set_frequency(si5351::PLL::A, si5351::ClockOutput::Clk0, 13_000_000)
-        .expect("Cannot set frequency");
 
     {
         let _gpout0_pin: Pin<Gpio21, FunctionClock, PullNone> = pins.gpio21.reconfigure();
@@ -116,16 +110,10 @@ fn main() -> ! {
         {
             warn!("Unable to route system clock to GPIO 21: {:?}", e);
         }
+
+        let clocks = clocks.free();
+        clocks.clk_gpout0_div().write(|w| w.int().variant(1000));
     };
-
-    // Set up clock to run from gpio input from Si5351 clock
-    let gpin0_pin = pins.gpio20.reconfigure();
-    let gpin0: GpIn0 = GpIn0::new(gpin0_pin, EXTERNAL_XTAL_FREQ_HZ);
-
-    clocks
-        .system_clock
-        .configure_clock(&gpin0, gpin0.get_freq())
-        .unwrap();
 
     let (rx_pio, rx_sm0, rx_sm1, rx_sm2, rx_sm3) = pac.PIO0.split(&mut pac.RESETS);
     let (tx_pio, tx_sm0, tx_sm1, tx_sm2, tx_sm3) = pac.PIO1.split(&mut pac.RESETS);
@@ -199,10 +187,10 @@ fn main() -> ! {
         BittideFifo::new(),
     ];
 
-    let tide_controller = bittide_impls::boards::pico1_and_si5351::Control::new(
-        Si5351Controller::new(
-            si_clock,
-            4,
+    let tide_controller = bittide_impls::boards::rpi_pico::Control::new(
+        FbdivController::new(
+            2,
+            pll_sys,
             PidSettings {
                 kp: I16F16::from_num(0.01),
                 ki: I16F16::from_num(0.00000001),
@@ -229,12 +217,12 @@ fn main() -> ! {
     }
 }
 
-static GLOBAL_CONTROL: Mutex<RefCell<Option<bittide_impls::boards::pico1_and_si5351::Control>>> =
+static GLOBAL_CONTROL: Mutex<RefCell<Option<bittide_impls::boards::rpi_pico::Control>>> =
     Mutex::new(RefCell::new(None));
 
 #[exception]
 fn SysTick() {
-    static mut CONTROL: Option<bittide_impls::boards::pico1_and_si5351::Control> = None;
+    static mut CONTROL: Option<bittide_impls::boards::rpi_pico::Control> = None;
 
     if CONTROL.is_none() {
         critical_section::with(|cs| {

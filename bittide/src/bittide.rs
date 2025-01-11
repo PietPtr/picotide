@@ -64,6 +64,7 @@ where
                 fifo.fifo
                     .push_back(message)
                     .expect("tide fifo not large enough")
+                // TODO: write good error dump here with trace of last N fifo fill levels
             }
         }
 

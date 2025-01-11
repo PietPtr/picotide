@@ -23,7 +23,7 @@ pub type Control = BittideChannelControl<
             ),
         >,
     >,
-    64,
+    64, // TODO: buffer size at compile time is inconvenient for fast iteration, what else can we use?
     Rp2040Links,
     4,
     crate::chips::rp2040::SioFifo,
