@@ -16,6 +16,7 @@ use critical_section::Mutex;
 #[allow(unused_imports)]
 use defmt::{error, info, warn};
 use defmt_rtt as _;
+use embedded_hal::digital::v2::ToggleableOutputPin;
 use fixed::types::I16F16;
 use fugit::HertzU32;
 use fugit::RateExtU32;
@@ -85,6 +86,9 @@ fn main() -> ! {
 
     info!("Configuring Si5351");
 
+    pins.gpio25
+        .into_push_pull_output_in_state(gpio::PinState::High);
+
     let i2c = I2C::i2c1(
         pac.I2C1,
         pins.gpio26.reconfigure(),
@@ -140,7 +144,7 @@ fn main() -> ! {
 
     let rx3_data = pins.gpio23.into_function::<FunctionPio0>().into_dyn_pin();
     let rx3_clk = pins.gpio24.into_function::<FunctionPio0>().into_dyn_pin();
-    let rx3_word = pins.gpio25.into_function::<FunctionPio0>().into_dyn_pin();
+    let rx3_word = pins.gpio28.into_function::<FunctionPio0>().into_dyn_pin();
 
     let tx0_data = pins.gpio0.into_function::<FunctionPio1>().into_dyn_pin();
     let tx0_clk = pins.gpio1.into_function::<FunctionPio1>().into_dyn_pin();
