@@ -10,27 +10,23 @@ use core::cell::RefCell;
 
 use controllers::fbdiv::FbdivController;
 use controllers::pid::PidSettings;
-use controllers::si5351::Si5351Controller;
 use cortex_m::asm;
 use cortex_m_rt::exception;
 use critical_section::Mutex;
 #[allow(unused_imports)]
 use defmt::{error, info, warn};
 use defmt_rtt as _;
+use embedded_hal::digital::v2::ToggleableOutputPin;
 use fixed::types::I16F16;
 use fugit::HertzU32;
-use fugit::RateExtU32;
 use panic_probe as _;
 use pitopi::Pitopi;
-use rp_pico::hal::gpin::GpIn0;
 use rp_pico::hal::gpio::bank0::Gpio21;
 use rp_pico::hal::gpio::FunctionClock;
 use rp_pico::hal::gpio::Pin;
 use rp_pico::hal::gpio::PullNone;
 use rp_pico::hal::pll::setup_pll_blocking;
-use rp_pico::hal::rosc::RingOscillator;
 use rp_pico::hal::xosc::setup_xosc_blocking;
-use rp_pico::hal::I2C;
 use rp_pico::pac;
 use rp_pico::{
     entry,
@@ -56,7 +52,7 @@ pub const SYS_PLL_CONFIG_100MHZ: PLLConfig = PLLConfig {
 };
 
 /// The divisor of how many CPU cycles should pass before a new word is sent to all neigboring nodes.
-pub const CLOCKS_PER_SYNC_WORD: u32 = 1024;
+pub const CLOCKS_PER_SYNC_WORD: u32 = 4096;
 
 #[entry]
 fn main() -> ! {
@@ -73,8 +69,11 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    pins.gpio25
+    let mut led = pins
+        .gpio25
         .into_push_pull_output_in_state(gpio::PinState::High);
+
+    loop {}
 
     let xosc = setup_xosc_blocking(pac.XOSC, EXTERNAL_XTAL_FREQ_HZ).unwrap();
 
@@ -211,9 +210,11 @@ fn main() -> ! {
 
     #[allow(clippy::empty_loop)]
     loop {
-        for _ in 0..150000 {
+        for _ in 0..1500000 {
             asm::nop();
         }
+
+        led.toggle().unwrap();
     }
 }
 

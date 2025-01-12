@@ -91,10 +91,11 @@ where
         }
 
         let buffer_levels: Vec<usize, DEGREE> =
-            self.tide_fifos.iter().map(|f| f.fifo.len()).collect();
+            self.tide_fifos.iter().map(|f| f.buffer_levels()).collect();
 
-        self.frequency_controller
-            .set_degree(self.links.active_fifos().iter().filter(|&&b| b).count());
+        let current_degree = self.links.active_fifos().iter().filter(|&&b| b).count();
+
+        self.frequency_controller.set_degree(current_degree);
         self.frequency_controller.run(&buffer_levels);
     }
 }
@@ -125,6 +126,10 @@ impl<const B: usize> BittideFifo<B> {
             fifo.push_back(BittideMessage::SyncMessage).unwrap()
         }
         Self { fifo }
+    }
+
+    pub fn buffer_levels(&self) -> usize {
+        self.fifo.len()
     }
 }
 

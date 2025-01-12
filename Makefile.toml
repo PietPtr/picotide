@@ -1,0 +1,24 @@
+
+
+[tasks.build-experimental]
+description = "Build one of the experimental projects"
+command = "cargo"
+args = ["build", "--release", "-p", "${CRATE}", "--config", "experimental/${CRATE}/.cargo/config.toml"]
+workspace = false
+
+[tasks.flash]
+description = "Flash the given binary to picos connected to the given GPIO pins."
+command = "cargo"
+args = ["run", "-p", "scripts", "--bin", "flash", "${BINARY_NAME}", "${SWDIO_PINS}"]
+workspace = false
+
+[tasks.build_pico_on_breadboard]
+extend = "build-experimental"
+workspace = false
+env = { "CRATE" = "pico_on_breadboard" }
+
+[tasks.pico_on_breadboard]
+dependencies = ["build_pico_on_breadboard"]
+run_task = "flash"
+env = { "SWDIO_PINS" = "3,4,5", "BINARY_NAME" = "pico_on_breadboard" }
+workspace = false
