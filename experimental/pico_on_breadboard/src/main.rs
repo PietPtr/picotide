@@ -73,8 +73,6 @@ fn main() -> ! {
         .gpio25
         .into_push_pull_output_in_state(gpio::PinState::High);
 
-    loop {}
-
     let xosc = setup_xosc_blocking(pac.XOSC, EXTERNAL_XTAL_FREQ_HZ).unwrap();
 
     let locked_pll_sys = setup_pll_blocking(
