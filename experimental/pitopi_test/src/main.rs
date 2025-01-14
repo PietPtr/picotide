@@ -16,7 +16,6 @@ use critical_section::Mutex;
 #[allow(unused_imports)]
 use defmt::{error, info, warn};
 use defmt_rtt as _;
-use embedded_hal::digital::v2::ToggleableOutputPin;
 use fixed::types::I16F16;
 use fugit::HertzU32;
 use fugit::RateExtU32;

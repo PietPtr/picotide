@@ -3,9 +3,15 @@
 resolver = "2"
 
 members = [
+    "scripts", 
     "experimental/*",
+    "installations/*",
     "pitopi", 
     "controllers", 
     "bittide", 
-    "bittide-impls", "bitsurf", "scripts", 
+    "bittide-impls", 
+    "bitsurf", 
     ]
+
+[workspace.package]
+rust-version = "1.81"

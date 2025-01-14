@@ -12,4 +12,3 @@ heapless = { version = "0.8.0", features = ["defmt-03"] }
 controllers = { path = "../controllers" }
 bittide = { path = "../bittide" }
 cortex-m = "0.7"
-critical-section = "1.2.0"

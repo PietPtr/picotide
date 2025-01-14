@@ -24,7 +24,7 @@ impl Component for Never {
         0
     }
 
-    fn compute(&mut self, input: Self::Input) -> Self::Output {
+    fn compute(&mut self, _input: Self::Input) -> Self::Output {
         panic!("This should never happen")
     }
 

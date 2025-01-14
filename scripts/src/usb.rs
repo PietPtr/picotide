@@ -1,4 +1,4 @@
-use rusb::{Context, DeviceHandle, GlobalContext, UsbContext};
+use rusb::{Context, DeviceHandle, UsbContext};
 
 pub fn usb(swdio_pin: u8) -> Result<(), String> {
     const VID: u16 = 0x2e8a;

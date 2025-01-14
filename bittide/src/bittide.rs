@@ -1,6 +1,19 @@
 use controllers::controller::FrequencyController;
 use heapless::{Deque, Vec};
 
+// TODO: debugging, starts with keeping track of things:
+// - buffer levels for the last n iterations
+// - ratio of sync messages vs data messages for last N iterations
+// - buffer levels every m iterations for the last n * m iterations
+// TODO: define ways to do a debug dump
+// - SWD: possible, but interrupts bittide control flow due to large prints
+// - over bittide network: serialize the debug dump in a stream of messages
+//      which are sent instead of sync messages. These should be routed to
+//      a controller / debugger, which can decode the messages and format
+//      the dump. To do routing we need:
+//      - topology discovery or definition
+//      - routing of messages
+
 /// Generic over the frequency controller F, and the buffer size B.
 pub struct BittideChannelControl<F, const B: usize, L, const DEGREE: usize, FIFO> {
     frequency_controller: F,

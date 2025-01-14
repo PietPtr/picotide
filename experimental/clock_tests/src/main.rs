@@ -6,7 +6,7 @@
 #[used]
 pub static BOOT2_FIRMWARE: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
 
-use core::{cell::RefCell, ops::RangeInclusive, u32};
+use core::{cell::RefCell, ops::RangeInclusive};
 
 use crate::pac::interrupt;
 use cortex_m::asm;
@@ -93,7 +93,7 @@ fn main() -> ! {
 
     info!(
         "current feedback divider: {}",
-        pll.fbdiv_int.read().fbdiv_int().bits()
+        pll.fbdiv_int().read().fbdiv_int().bits()
     );
 
     let pins = gpio::Pins::new(
@@ -113,7 +113,7 @@ fn main() -> ! {
         pio_file!("src/programs.pio", select_program("toggle_pin_slow")).program;
     let toggle_pin = pio.install(&toggle_pin_program).unwrap();
 
-    let (mut sm0, _rx0, _tx0) = PIOBuilder::from_program(toggle_pin)
+    let (mut sm0, _rx0, _tx0) = PIOBuilder::from_installed_program(toggle_pin)
         .set_pins(exposed_slow_clock_pin.id().num, 1)
         .clock_divisor_fixed_point(0, 0)
         .build(sm0);
@@ -125,7 +125,7 @@ fn main() -> ! {
     let toggle_pin_program = pio_file!("src/programs.pio", select_program("toggle_pin")).program;
     let toggle_pin = pio.install(&toggle_pin_program).unwrap();
 
-    let (mut sm1, _rx0, _tx0) = PIOBuilder::from_program(toggle_pin)
+    let (mut sm1, _rx0, _tx0) = PIOBuilder::from_installed_program(toggle_pin)
         .set_pins(exposed_fast_clock_pin.id().num, 1)
         .clock_divisor_fixed_point(5, 0)
         .build(sm1);
@@ -135,27 +135,27 @@ fn main() -> ! {
 
     info!("Start.");
 
-    pac.PPB.syst_csr.write(|w| unsafe { w.bits(0b001) });
-    pac.PPB.syst_rvr.write(|w| unsafe { w.bits(SYST_RVR) });
+    pac.PPB.syst_csr().write(|w| unsafe { w.bits(0b001) });
+    pac.PPB.syst_rvr().write(|w| unsafe { w.bits(SYST_RVR) });
 
     info!(
         "\nclksource={} ({})\nenabled={}\ntickint={}\nrvr={:#x}\nsyst_calib: noref={} skew={} tenms={:x}",
-        if pac.PPB.syst_csr.read().clksource().bit() {
+        if pac.PPB.syst_csr().read().clksource().bit() {
             "processor"
         } else {
             "refclock"
         },
-        pac.PPB.syst_csr.read().clksource().bit(),
-        pac.PPB.syst_csr.read().enable().bit_is_set(),
-        pac.PPB.syst_csr.read().tickint().bit(),
-        pac.PPB.syst_rvr.read().bits(),
-        pac.PPB.syst_calib.read().noref().bit(),
-        pac.PPB.syst_calib.read().skew().bit(),
-        pac.PPB.syst_calib.read().tenms().bits(),
+        pac.PPB.syst_csr().read().clksource().bit(),
+        pac.PPB.syst_csr().read().enable().bit_is_set(),
+        pac.PPB.syst_csr().read().tickint().bit(),
+        pac.PPB.syst_rvr().read().bits(),
+        pac.PPB.syst_calib().read().noref().bit(),
+        pac.PPB.syst_calib().read().skew().bit(),
+        pac.PPB.syst_calib().read().tenms().bits(),
     );
 
     pac.PPB
-        .syst_cvr
+        .syst_cvr()
         .write(|w| unsafe { w.current().bits(0xfff) });
 
     let senser_pin: SenserPin = pins.gpio20.into_pull_down_input();
@@ -190,7 +190,7 @@ fn main() -> ! {
         let new_fbdiv = fbdivs.next().unwrap();
         info!("Set new feedback divider: {}", new_fbdiv);
 
-        pll.fbdiv_int
+        pll.fbdiv_int()
             .write(|w| unsafe { w.fbdiv_int().bits(new_fbdiv) });
 
         test_pin.set_high().unwrap();
@@ -235,10 +235,10 @@ fn IO_IRQ_BANK0() {
 
     if clk_senser.interrupt_status(Interrupt::EdgeHigh) {
         // Diference between rvr and read value is the time between clocks
-        let syst_value = ppb.syst_cvr.read().current().bits();
+        let syst_value = ppb.syst_cvr().read().current().bits();
 
         // reset syst_cvr counter to immediately start counting the next clock
-        ppb.syst_cvr
+        ppb.syst_cvr()
             .write(|w| unsafe { w.current().bits(0xffffff) });
 
         let ticks_taken = 0xffffff - syst_value;

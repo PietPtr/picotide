@@ -1,4 +1,4 @@
-use std::{error::Error, path::Path, process::Command, time::Duration};
+use std::{error::Error, path::Path, time::Duration};
 
 use clap::Parser;
 use probe_rs::{
