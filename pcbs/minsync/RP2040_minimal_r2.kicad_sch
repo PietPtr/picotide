@@ -7127,13 +7127,14 @@
 		)
 		(uuid "f9e1d5c6-6630-48d6-849f-a5938af673cb")
 	)
-	(text "TODO:\ncheck BOOTSEL button: compare to RPi Pico\ncheck if screen would actually fit"
+	(text "TODO:\ncheck BOOTSEL button: compare to RPi Pico\ncheck if screen would actually fit\ncustom footprint for GPIO connectors: markers for RX/TX, power, etc on silkscreen"
 		(exclude_from_sim no)
-		(at 197.104 37.846 0)
+		(at 146.558 24.13 0)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
+			(justify left)
 		)
 		(uuid "fa5431e1-b9d8-4c5b-a2e0-e2c6629d1942")
 	)
@@ -11487,7 +11488,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "3b1c2cf8-8e75-4ef4-9a59-6c6bc67cae23")
-		(property "Reference" "J6"
+		(property "Reference" "J4"
 			(at 379.73 80.01 0)
 			(effects
 				(font
@@ -11557,7 +11558,7 @@
 		(instances
 			(project "RP2040_minimal_r2"
 				(path "/8c0b3d8b-46d3-4173-ab1e-a61765f77d61"
-					(reference "J6")
+					(reference "J4")
 					(unit 1)
 				)
 			)
@@ -12050,7 +12051,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "6f913393-1edf-44bd-9c96-d84fcfcc8ed6")
-		(property "Reference" "J8"
+		(property "Reference" "J7"
 			(at 302.895 158.75 0)
 			(effects
 				(font
@@ -12108,7 +12109,7 @@
 		(instances
 			(project ""
 				(path "/8c0b3d8b-46d3-4173-ab1e-a61765f77d61"
-					(reference "J8")
+					(reference "J7")
 					(unit 1)
 				)
 			)
@@ -12124,7 +12125,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "83ede19e-baab-40f7-b818-6d5ea8517d78")
-		(property "Reference" "J3"
+		(property "Reference" "J6"
 			(at 360.045 134.62 0)
 			(effects
 				(font
@@ -12173,7 +12174,7 @@
 		(instances
 			(project ""
 				(path "/8c0b3d8b-46d3-4173-ab1e-a61765f77d61"
-					(reference "J3")
+					(reference "J6")
 					(unit 1)
 				)
 			)
@@ -12698,7 +12699,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "c302caae-5a44-4828-ae37-906220b1e11e")
-		(property "Reference" "J1"
+		(property "Reference" "J5"
 			(at 308.61 27.94 0)
 			(effects
 				(font
@@ -12753,7 +12754,7 @@
 		(instances
 			(project ""
 				(path "/8c0b3d8b-46d3-4173-ab1e-a61765f77d61"
-					(reference "J1")
+					(reference "J5")
 					(unit 1)
 				)
 			)
@@ -12769,7 +12770,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "c5ffd0f3-4feb-4951-ad87-593876193f59")
-		(property "Reference" "J5"
+		(property "Reference" "J3"
 			(at 379.73 60.96 0)
 			(effects
 				(font
@@ -12839,7 +12840,7 @@
 		(instances
 			(project "RP2040_minimal_r2"
 				(path "/8c0b3d8b-46d3-4173-ab1e-a61765f77d61"
-					(reference "J5")
+					(reference "J3")
 					(unit 1)
 				)
 			)
@@ -12923,7 +12924,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "d35263d1-66ec-4245-905a-c98d6bf01cca")
-		(property "Reference" "J2"
+		(property "Reference" "J1"
 			(at 379.73 20.32 0)
 			(effects
 				(font
@@ -12993,7 +12994,7 @@
 		(instances
 			(project ""
 				(path "/8c0b3d8b-46d3-4173-ab1e-a61765f77d61"
-					(reference "J2")
+					(reference "J1")
 					(unit 1)
 				)
 			)
@@ -13076,7 +13077,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "e8380572-1c46-42e6-9e8c-14a7626fad53")
-		(property "Reference" "J4"
+		(property "Reference" "J2"
 			(at 379.73 41.91 0)
 			(effects
 				(font
@@ -13146,7 +13147,7 @@
 		(instances
 			(project "RP2040_minimal_r2"
 				(path "/8c0b3d8b-46d3-4173-ab1e-a61765f77d61"
-					(reference "J4")
+					(reference "J2")
 					(unit 1)
 				)
 			)
