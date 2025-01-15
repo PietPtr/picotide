@@ -1,9 +1,14 @@
-use std::{error::Error, path::Path, time::Duration};
+use std::{
+    error::Error,
+    io,
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
 use clap::Parser;
 use probe_rs::{
     flashing::{download_file_with_options, DownloadOptions, FlashProgress, Format},
-    probe::list::Lister,
+    probe::{list::Lister, Probe},
     Permissions,
 };
 
@@ -16,10 +21,6 @@ struct Arguments {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Arguments::parse();
-
-    let lister = Lister::new();
-    let probes = lister.list_all();
-    println!("Probes:\n{probes:?}");
 
     let path = Path::new("target")
         .join("thumbv6m-none-eabi")
@@ -34,19 +35,39 @@ fn main() -> Result<(), Box<dyn Error>> {
     for pin in args.pins {
         scripts::usb::usb(pin).unwrap();
 
-        let probe = probes.first().expect("No probes found").open().unwrap();
-        let mut session = probe.attach("rp2040", Permissions::default()).unwrap();
+        // TODO: use a thing more similar to probe-rs main becasue this fails often.
+        let mut timeout = 1;
+        'flash_loop: while flash(&path).is_err() {
+            eprintln!("Flash failed, retrying ({timeout})");
+            timeout += 1;
 
-        let mut options = DownloadOptions::default();
-        options.progress = Some(FlashProgress::new(|e| println!("{e:?}")));
+            if timeout > 3 {
+                eprintln!("Max retries for flashing exceeded.");
+                break 'flash_loop;
+            }
 
-        download_file_with_options(&mut session, &path, Format::Elf, options).unwrap();
-
-        session
-            .core(0)?
-            .reset_and_halt(Duration::from_millis(100))?;
-        session.core(0)?.run()?;
+            scripts::usb::usb(pin).unwrap();
+        }
     }
+
+    Ok(())
+}
+
+fn flash(path: &PathBuf) -> Result<(), Box<dyn Error>> {
+    let lister = Lister::new();
+    let probes = lister.list_all();
+    let probe = probes.first().expect("No probes found").open()?;
+    let mut session = probe.attach("rp2040", Permissions::default())?;
+
+    let mut options = DownloadOptions::default();
+    options.progress = Some(FlashProgress::new(|e| println!("{e:?}")));
+
+    download_file_with_options(&mut session, path, Format::Elf, options)?;
+
+    session
+        .core(0)?
+        .reset_and_halt(Duration::from_millis(100))?;
+    session.core(0)?.run()?;
 
     Ok(())
 }

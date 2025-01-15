@@ -1,24 +1,54 @@
-
-
-[tasks.build-experimental]
-description = "Build one of the experimental projects"
+[tasks.set_swdio]
+description = "Change the SWDIO pin used by the pico debugger."
 command = "cargo"
-args = ["build", "--release", "-p", "${CRATE}", "--config", "experimental/${CRATE}/.cargo/config.toml"]
+args = ["run", "-p", "scripts", "--bin", "set_swdio", "--", "${@}"]
+workspace = false
+
+
+[tasks.build]
+description = "Build one of crates given a DIR and CRATE in the env"
+command = "cargo"
+args = [
+    "build",
+    "--release",
+    "-p",
+    "${CRATE}",
+    "--config",
+    "${DIR}/${CRATE}/.cargo/config.toml",
+]
 workspace = false
 
 [tasks.flash]
 description = "Flash the given binary to picos connected to the given GPIO pins."
 command = "cargo"
-args = ["run", "-p", "scripts", "--bin", "flash", "${BINARY_NAME}", "${SWDIO_PINS}"]
+args = [
+    "run",
+    "-p",
+    "scripts",
+    "--bin",
+    "flash",
+    "${BINARY_NAME}",
+    "${SWDIO_PINS}",
+]
 workspace = false
 
 [tasks.build_pico_on_breadboard]
-extend = "build-experimental"
+extend = "build"
 workspace = false
-env = { "CRATE" = "pico_on_breadboard" }
+env = { "CRATE" = "pico_on_breadboard", "DIR" = "installations" }
 
 [tasks.pico_on_breadboard]
 dependencies = ["build_pico_on_breadboard"]
 run_task = "flash"
 env = { "SWDIO_PINS" = "3,4,5", "BINARY_NAME" = "pico_on_breadboard" }
+workspace = false
+
+[tasks.build_flash_test]
+extend = "build"
+env = { "CRATE" = "flash_test", "DIR" = "experimental" }
+
+[tasks.flash_test]
+dependencies = ["build_flash_test"]
+run_task = "flash"
+env = { "SWDIO_PINS" = "3,4,5", "BINARY_NAME" = "flash_test" }
 workspace = false

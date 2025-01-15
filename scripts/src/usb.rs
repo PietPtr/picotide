@@ -31,7 +31,11 @@ pub fn usb(swdio_pin: u8) -> Result<(), String> {
         )
         .map_err(|err| format!("Read error: {err:?}"))?;
 
-    println!("Response: {:?}", response);
+    let &actual_pin = response.get(2).unwrap();
+
+    if actual_pin != swdio_pin {
+        eprintln!("Failed to set pin, expected {swdio_pin}, but probe is set to {actual_pin}.")
+    }
 
     Ok(())
 }
