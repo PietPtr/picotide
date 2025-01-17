@@ -1,0 +1,8 @@
+num_binaries = 3
+
+[constants.integral]
+NODE_ID = [0, 1, 2]
+BUFFER_SIZE = [64, 64, 64]
+
+[constants.string]
+NAME = ["red", "blue", "green"]

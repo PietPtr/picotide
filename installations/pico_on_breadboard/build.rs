@@ -8,12 +8,15 @@
 //! updating `memory.x` ensures a rebuild of the application with the
 //! new memory settings.
 
-use std::env;
+use std::error::Error;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
+use std::{env, fs};
 
-fn main() {
+use multibuild::BuildConfig;
+
+fn main() -> Result<(), Box<dyn Error>> {
     // Put `memory.x` in our output directory and ensure it's
     // on the linker search path.
     let out = &PathBuf::from(env::var_os("OUT_DIR").unwrap());
@@ -29,4 +32,19 @@ fn main() {
     // `memory.x` is changed.
     println!("cargo:rerun-if-changed=memory.x");
     println!("cargo:rerun-if-changed=src/programs.pio");
+
+    let config = BuildConfig::load_build_config("Build.toml")?;
+
+    println!("{:?}", config);
+
+    let binary_index: usize = env::var("BINARY_INDEX")
+        .unwrap_or("0".to_string())
+        .parse()
+        .expect("Failed to parse environment variable as integer");
+
+    config
+        .generate_constants_rs(binary_index, "src/generated_constants.rs")
+        .unwrap();
+
+    Ok(())
 }

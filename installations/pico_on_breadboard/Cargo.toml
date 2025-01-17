@@ -24,3 +24,6 @@ bittide = { path = "../../bittide" }
 bittide-impls = { path = "../../bittide-impls" }
 pitopi = { path = "../../pitopi" }
 fixed = "=1.27.0"
+
+[build-dependencies]
+multibuild = { path = "../../multibuild" }

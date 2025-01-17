@@ -1,0 +1,10 @@
+[package]
+name = "multibuild"
+version = "0.1.0"
+edition = "2021"
+rust-version.workspace = true
+description = "Utility crate to be used in build.rs files to easily build the same binary with different constants"
+
+[dependencies]
+serde = { version = "1.0.217", features = ["derive"] }
+toml = "0.8.19"

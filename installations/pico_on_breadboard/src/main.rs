@@ -19,6 +19,8 @@ use defmt_rtt as _;
 use embedded_hal::digital::v2::ToggleableOutputPin;
 use fixed::types::I16F16;
 use fugit::HertzU32;
+use generated_constants::NAME;
+use generated_constants::NODE_ID;
 use panic_probe as _;
 use pitopi::Pitopi;
 use rp_pico::hal::gpio::bank0::Gpio21;
@@ -41,6 +43,8 @@ use rp_pico::{
 
 use bittide::bittide::BittideFifo;
 use bittide_impls::chips::rp2040::Rp2040Links;
+
+mod generated_constants;
 
 pub const EXTERNAL_XTAL_FREQ_HZ: HertzU32 = HertzU32::from_raw(12_000_000u32);
 
@@ -203,7 +207,7 @@ fn main() -> ! {
         GLOBAL_CONTROL.borrow(cs).replace(Some(tide_controller));
     });
 
-    info!("Start.");
+    info!("Starting node {} {}", NODE_ID, NAME);
     bittide_impls::chips::rp2040::setup_interrupt(CLOCKS_PER_SYNC_WORD, &mut core.SYST);
 
     #[allow(clippy::empty_loop)]
