@@ -6,7 +6,7 @@ workspace = false
 
 
 [tasks.build]
-description = "Build one of crates given a DIR and CRATE in the env"
+description = "Build crates given a DIR and CRATE in the env"
 command = "cargo"
 args = [
     "build",
@@ -34,7 +34,6 @@ workspace = false
 
 [tasks.build_pico_on_breadboard]
 extend = "build"
-workspace = false
 env = { "CRATE" = "pico_on_breadboard", "DIR" = "installations" }
 
 [tasks.pico_on_breadboard]
@@ -51,4 +50,18 @@ env = { "CRATE" = "flash_test", "DIR" = "experimental" }
 dependencies = ["build_flash_test"]
 run_task = "flash"
 env = { "SWDIO_PINS" = "3,4,5", "BINARY_NAME" = "flash_test" }
+workspace = false
+
+[tasks.build_and_flash_installation]
+description = "Builds and flashes a binary for each pin, using the next configuration specified in the crate's Build.toml"
+command = "cargo"
+args = [
+    "run",
+    "-p",
+    "scripts",
+    "--bin",
+    "build_and_flash",
+    "${CRATE}",
+    "${SWDIO_PINS}",
+]
 workspace = false

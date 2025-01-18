@@ -1,16 +1,6 @@
-use std::{
-    error::Error,
-    io,
-    path::{Path, PathBuf},
-    time::Duration,
-};
+use std::{error::Error, path::Path};
 
 use clap::Parser;
-use probe_rs::{
-    flashing::{download_file_with_options, DownloadOptions, FlashProgress, Format},
-    probe::{list::Lister, Probe},
-    Permissions,
-};
 
 #[derive(Debug, Parser)]
 struct Arguments {
@@ -34,40 +24,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     for pin in args.pins {
         scripts::usb::usb(pin).unwrap();
-
-        // TODO: use a thing more similar to probe-rs main becasue this fails often.
-        let mut timeout = 1;
-        'flash_loop: while flash(&path).is_err() {
-            eprintln!("Flash failed, retrying ({timeout})");
-            timeout += 1;
-
-            if timeout > 3 {
-                eprintln!("Max retries for flashing exceeded.");
-                break 'flash_loop;
-            }
-
-            scripts::usb::usb(pin).unwrap();
-        }
+        scripts::flash::flash_with_retries(pin, &path)?;
     }
-
-    Ok(())
-}
-
-fn flash(path: &PathBuf) -> Result<(), Box<dyn Error>> {
-    let lister = Lister::new();
-    let probes = lister.list_all();
-    let probe = probes.first().expect("No probes found").open()?;
-    let mut session = probe.attach("rp2040", Permissions::default())?;
-
-    let mut options = DownloadOptions::default();
-    options.progress = Some(FlashProgress::new(|e| println!("{e:?}")));
-
-    download_file_with_options(&mut session, path, Format::Elf, options)?;
-
-    session
-        .core(0)?
-        .reset_and_halt(Duration::from_millis(100))?;
-    session.core(0)?.run()?;
 
     Ok(())
 }

@@ -32,6 +32,33 @@ impl BuildConfig {
         }
     }
 
+    pub fn constants_for_index(&self, index: usize) -> Result<BuildConstants, Box<dyn Error>> {
+        if index >= self.num_binaries {
+            return Err(format!(
+                "Binary {index} does not exist, there are {} binaries.",
+                self.num_binaries
+            )
+            .into());
+        }
+
+        let constants = BuildConstants {
+            integral: self
+                .constants
+                .integral
+                .iter()
+                .map(|(key, vec)| (key.clone(), vec![*vec.get(index).unwrap()]))
+                .collect(),
+            string: self
+                .constants
+                .string
+                .iter()
+                .map(|(key, vec)| (key.clone(), vec![vec.get(index).unwrap().clone()]))
+                .collect(),
+        };
+
+        Ok(constants)
+    }
+
     pub fn generate_constants_rs(
         &self,
         binary_index: usize,
@@ -47,7 +74,7 @@ impl BuildConfig {
             .into());
         }
 
-        let mut string = String::new();
+        let mut string = "#![allow(dead_code)]\n".to_string();
 
         for (name, value) in self.constants.integral.iter() {
             let line = format!(

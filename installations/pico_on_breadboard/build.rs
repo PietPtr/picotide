@@ -8,11 +8,11 @@
 //! updating `memory.x` ensures a rebuild of the application with the
 //! new memory settings.
 
+use std::env;
 use std::error::Error;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
-use std::{env, fs};
 
 use multibuild::BuildConfig;
 
@@ -35,12 +35,16 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let config = BuildConfig::load_build_config("Build.toml")?;
 
-    println!("{:?}", config);
-
     let binary_index: usize = env::var("BINARY_INDEX")
         .unwrap_or("0".to_string())
         .parse()
         .expect("Failed to parse environment variable as integer");
+
+    println!(
+        "cargo:warning=binary index = {}, config = {:?}",
+        binary_index,
+        config.constants_for_index(binary_index).unwrap()
+    );
 
     config
         .generate_constants_rs(binary_index, "src/generated_constants.rs")
