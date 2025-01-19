@@ -11504,7 +11504,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_2x04_P2.54mm_Vertical"
+		(property "Footprint" "RP2040_minimal:pitopi_and_power"
 			(at 381 91.44 0)
 			(effects
 				(font
@@ -12786,7 +12786,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_2x04_P2.54mm_Vertical"
+		(property "Footprint" "RP2040_minimal:pitopi_and_power"
 			(at 381 72.39 0)
 			(effects
 				(font
@@ -12940,7 +12940,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_2x04_P2.54mm_Vertical"
+		(property "Footprint" "RP2040_minimal:pitopi_and_power"
 			(at 381 31.75 0)
 			(effects
 				(font
@@ -13093,7 +13093,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_2x04_P2.54mm_Vertical"
+		(property "Footprint" "RP2040_minimal:pitopi_and_power"
 			(at 381 53.34 0)
 			(effects
 				(font
