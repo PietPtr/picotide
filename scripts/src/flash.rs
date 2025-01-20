@@ -10,10 +10,9 @@ use crate::usb;
 
 pub fn flash_with_retries(pin: u8, path: &PathBuf) -> Result<(), Box<dyn Error>> {
     // TODO: use a thing more similar to probe-rs main becasue this fails often.
-    usb::usb(pin).unwrap();
 
     let mut timeout = 1;
-    'flash_loop: while flash(path).is_err() {
+    'flash_loop: while flash(pin, path).is_err() {
         eprintln!("Flash failed, retrying ({timeout})");
         timeout += 1;
 
@@ -21,14 +20,14 @@ pub fn flash_with_retries(pin: u8, path: &PathBuf) -> Result<(), Box<dyn Error>>
             eprintln!("Max retries for flashing exceeded.");
             break 'flash_loop;
         }
-
-        usb::usb(pin).unwrap();
     }
 
     Ok(())
 }
 
-pub fn flash(path: &PathBuf) -> Result<(), Box<dyn Error>> {
+pub fn flash(pin: u8, path: &PathBuf) -> Result<(), Box<dyn Error>> {
+    usb::usb(pin).unwrap();
+
     let lister = Lister::new();
     let probes = lister.list_all();
     let probe = probes.first().expect("No probes found").open()?;

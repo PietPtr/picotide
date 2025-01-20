@@ -6,3 +6,4 @@ pcbs/**/*_autosave*
 pcbs/**/~*.lck
 pcbs/**/*.bak
 pcbs/**/gerbers
+**/generated_constants.rs

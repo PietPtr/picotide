@@ -1,10 +1,4 @@
-use std::{
-    env,
-    error::Error,
-    io::{BufRead, BufReader},
-    path::Path,
-    process::{Command, Stdio},
-};
+use std::{env, error::Error, path::Path, process::Command};
 
 use clap::Parser;
 
@@ -17,12 +11,6 @@ struct Arguments {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Arguments::parse();
-
-    // for each pin in args.pins,
-    // using current binary index,
-    // set env var for binary index
-    // build given crate in installation,
-    // and flash it
 
     for (binary_index, &pin) in args.pins.iter().enumerate() {
         env::set_var("BINARY_INDEX", format!("{}", binary_index));
@@ -51,7 +39,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             .join("release")
             .join(&args.binary_name);
 
-        scripts::flash::flash(&path)?;
+        scripts::flash::flash_with_retries(pin, &path)?;
     }
 
     Ok(())
