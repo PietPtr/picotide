@@ -1518,6 +1518,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "minsync"
+version = "0.9.0"
+dependencies = [
+ "cortex-m",
+ "cortex-m-rt",
+ "embedded-hal 0.2.7",
+ "fugit",
+ "panic-probe",
+ "rp2040-boot2 0.2.1",
+ "rp2040-hal",
+ "si5351",
+ "usb-device",
+]
+
+[[package]]
 name = "multibuild"
 version = "0.1.0"
 dependencies = [

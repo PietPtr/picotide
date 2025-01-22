@@ -3,15 +3,17 @@
 resolver = "2"
 
 members = [
-    "scripts", 
+    "scripts",
     "experimental/*",
     "installations/*",
-    "pitopi", 
-    "controllers", 
-    "bittide", 
-    "bittide-impls", 
-    "bitsurf", "multibuild", 
-    ]
+    "pitopi",
+    "controllers",
+    "bittide",
+    "bittide-impls",
+    "bitsurf",
+    "multibuild",
+    "minsync",
+]
 
 [workspace.package]
 rust-version = "1.81"
