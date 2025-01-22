@@ -61,7 +61,7 @@ fn main() -> ! {
 
     let mut si_clock = Si5351Device::new(i2c, false, minsync::SI5351_CRYSTAL_FREQ);
     si_clock
-        .init(si5351::CrystalLoad::_10)
+        .init(si5351::CrystalLoad::_8)
         .expect("Cannot init clock.");
 
     si_clock

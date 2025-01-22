@@ -7127,7 +7127,7 @@
 		)
 		(uuid "f9e1d5c6-6630-48d6-849f-a5938af673cb")
 	)
-	(text "TODO:\nx check BOOTSEL button: compare to RPi Pico\nx check if screen would actually fit\nx check RUN pin with rp minimal\nchange LED in BOM to a better color (C2290?)\nfix tiny trace error to the right of rp2040"
+	(text "TODO:\nx check BOOTSEL button: compare to RPi Pico\nx check if screen would actually fit\nx check RUN pin with rp minimal\nchange LED in BOM to a better color (C2290?)\nx fix tiny trace error to the right of rp2040\ncheck the exact components for the whole BOM"
 		(exclude_from_sim no)
 		(at 146.558 24.13 0)
 		(effects
@@ -7137,6 +7137,17 @@
 			(justify left)
 		)
 		(uuid "fa5431e1-b9d8-4c5b-a2e0-e2c6629d1942")
+	)
+	(label "SI_CLK2"
+		(at 88.9 275.59 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "05476628-bbb2-46bc-b7d9-aec6e140afa5")
 	)
 	(label "GPIO24"
 		(at 386.08 86.36 0)
@@ -11488,7 +11499,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "3b1c2cf8-8e75-4ef4-9a59-6c6bc67cae23")
-		(property "Reference" "J4"
+		(property "Reference" "PTP4"
 			(at 379.73 80.01 0)
 			(effects
 				(font
@@ -11558,7 +11569,7 @@
 		(instances
 			(project "RP2040_minimal_r2"
 				(path "/8c0b3d8b-46d3-4173-ab1e-a61765f77d61"
-					(reference "J4")
+					(reference "PTP4")
 					(unit 1)
 				)
 			)
@@ -12690,6 +12701,75 @@
 		)
 	)
 	(symbol
+		(lib_id "Device:C")
+		(at 85.09 218.44 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "b75d8389-84e5-48c3-923e-41e3a6384048")
+		(property "Reference" "C2"
+			(at 88.011 217.2716 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "100n"
+			(at 88.011 219.583 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
+			(at 86.0552 222.25 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 85.09 218.44 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 85.09 218.44 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "402a0bbb-5cc0-489c-b726-c73d373701d8")
+		)
+		(pin "2"
+			(uuid "84a037d3-f597-4288-b5da-0eb78ff0d755")
+		)
+		(instances
+			(project "RP2040_minimal_r2"
+				(path "/8c0b3d8b-46d3-4173-ab1e-a61765f77d61"
+					(reference "C2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Connector_Generic:Conn_01x03")
 		(at 308.61 36.83 180)
 		(unit 1)
@@ -12770,7 +12850,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "c5ffd0f3-4feb-4951-ad87-593876193f59")
-		(property "Reference" "J3"
+		(property "Reference" "PTP3"
 			(at 379.73 60.96 0)
 			(effects
 				(font
@@ -12840,7 +12920,7 @@
 		(instances
 			(project "RP2040_minimal_r2"
 				(path "/8c0b3d8b-46d3-4173-ab1e-a61765f77d61"
-					(reference "J3")
+					(reference "PTP3")
 					(unit 1)
 				)
 			)
@@ -12924,7 +13004,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "d35263d1-66ec-4245-905a-c98d6bf01cca")
-		(property "Reference" "J1"
+		(property "Reference" "PTP1"
 			(at 379.73 20.32 0)
 			(effects
 				(font
@@ -12994,7 +13074,7 @@
 		(instances
 			(project ""
 				(path "/8c0b3d8b-46d3-4173-ab1e-a61765f77d61"
-					(reference "J1")
+					(reference "PTP1")
 					(unit 1)
 				)
 			)
@@ -13077,7 +13157,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "e8380572-1c46-42e6-9e8c-14a7626fad53")
-		(property "Reference" "J2"
+		(property "Reference" "PTP2"
 			(at 379.73 41.91 0)
 			(effects
 				(font
@@ -13147,7 +13227,72 @@
 		(instances
 			(project "RP2040_minimal_r2"
 				(path "/8c0b3d8b-46d3-4173-ab1e-a61765f77d61"
-					(reference "J2")
+					(reference "PTP2")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Connector:TestPoint")
+		(at 88.9 275.59 90)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "ec5674f7-e07e-48ec-89f7-9f948c832372")
+		(property "Reference" "TP2"
+			(at 85.598 270.51 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "TestPoint"
+			(at 85.598 273.05 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x01_P2.54mm_Vertical"
+			(at 88.9 270.51 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 88.9 270.51 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "test point"
+			(at 88.9 275.59 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "3dc2350d-1e3a-4bef-aba8-c58b625551f8")
+		)
+		(instances
+			(project "RP2040_minimal_r2"
+				(path "/8c0b3d8b-46d3-4173-ab1e-a61765f77d61"
+					(reference "TP2")
 					(unit 1)
 				)
 			)
@@ -13373,7 +13518,7 @@
 	)
 	(symbol
 		(lib_id "power:+3V3")
-		(at 85.09 222.25 0)
+		(at 85.09 214.63 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -13381,7 +13526,7 @@
 		(dnp no)
 		(uuid "f9ba7151-948d-4cd0-b340-b2a4b60609a3")
 		(property "Reference" "#PWR045"
-			(at 85.09 226.06 0)
+			(at 85.09 218.44 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -13390,7 +13535,7 @@
 			)
 		)
 		(property "Value" "+3V3"
-			(at 85.471 217.8558 0)
+			(at 85.471 210.2358 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -13398,7 +13543,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 85.09 222.25 0)
+			(at 85.09 214.63 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -13407,7 +13552,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 85.09 222.25 0)
+			(at 85.09 214.63 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -13416,7 +13561,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 85.09 222.25 0)
+			(at 85.09 214.63 0)
 			(effects
 				(font
 					(size 1.27 1.27)
