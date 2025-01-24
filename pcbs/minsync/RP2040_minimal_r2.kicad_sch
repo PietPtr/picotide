@@ -7127,7 +7127,7 @@
 		)
 		(uuid "f9e1d5c6-6630-48d6-849f-a5938af673cb")
 	)
-	(text "TODO:\nx check BOOTSEL button: compare to RPi Pico\nx check if screen would actually fit\nx check RUN pin with rp minimal\nchange LED in BOM to a better color (C2290?)\nx fix tiny trace error to the right of rp2040\ncheck the exact components for the whole BOM"
+	(text "TODO:\nx check BOOTSEL button: compare to RPi Pico\nx check if screen would actually fit\nx check RUN pin with rp minimal\nx change LED in BOM to a better color (C2290?)\nx fix tiny trace error to the right of rp2040\nx check the exact components for the whole BOM"
 		(exclude_from_sim no)
 		(at 146.558 24.13 0)
 		(effects
