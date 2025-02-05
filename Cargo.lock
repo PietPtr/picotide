@@ -205,10 +205,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1be3f42a67d6d345ecd59f675f3f012d6974981560836e938c22b424b85ce1be"
 
 [[package]]
-name = "bitsurf"
-version = "0.1.0"
-
-[[package]]
 name = "bittide"
 version = "0.1.0"
 dependencies = [
@@ -1523,6 +1519,8 @@ version = "0.9.0"
 dependencies = [
  "cortex-m",
  "cortex-m-rt",
+ "defmt",
+ "defmt-rtt",
  "embedded-hal 0.2.7",
  "fugit",
  "panic-probe",
@@ -2464,6 +2462,10 @@ dependencies = [
  "rustversion",
  "syn 2.0.96",
 ]
+
+[[package]]
+name = "surf"
+version = "0.1.0"
 
 [[package]]
 name = "svg"

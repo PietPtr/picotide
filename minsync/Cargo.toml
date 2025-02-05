@@ -18,6 +18,8 @@ panic-probe = { version = "0.3", features = ["print-defmt"] }
 embedded-hal = { version = "0.2.7", features = ["unproven"] }
 cortex-m = "0.7"
 si5351 = "0.2.0"
+defmt = "0.3.5"
+defmt-rtt = "0.4"
 
 [features]
 # This is the set of features we enable by default

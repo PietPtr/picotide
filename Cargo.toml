@@ -10,7 +10,7 @@ members = [
     "controllers",
     "bittide",
     "bittide-impls",
-    "bitsurf",
+    "surf",
     "multibuild",
     "minsync",
 ]

@@ -5372,6 +5372,12 @@
 		(uuid "1ea163f1-1fb9-45c3-82e2-4099a5d3fcf1")
 	)
 	(junction
+		(at 85.09 222.25)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "2b399974-d78c-40e6-b0a6-94e05b68171a")
+	)
+	(junction
 		(at 223.52 60.96)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -6403,6 +6409,16 @@
 	)
 	(wire
 		(pts
+			(xy 85.09 222.25) (xy 90.17 222.25)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "95f26a8e-f03e-4e8e-b91d-48903be45a69")
+	)
+	(wire
+		(pts
 			(xy 204.47 93.98) (xy 204.47 81.28)
 		)
 		(stroke
@@ -7127,7 +7143,7 @@
 		)
 		(uuid "f9e1d5c6-6630-48d6-849f-a5938af673cb")
 	)
-	(text "TODO:\nx check BOOTSEL button: compare to RPi Pico\nx check if screen would actually fit\nx check RUN pin with rp minimal\nx change LED in BOM to a better color (C2290?)\nx fix tiny trace error to the right of rp2040\nx check the exact components for the whole BOM"
+	(text "TODO:\nSi5351: \"Unused VDDO pins should be tied to VDD\"\nboard-to-board connector for SWD can exist together with headers\nDoes the screen work?\nCan the board run programs for a long time?"
 		(exclude_from_sim no)
 		(at 146.558 24.13 0)
 		(effects
@@ -12710,7 +12726,7 @@
 		(dnp no)
 		(uuid "b75d8389-84e5-48c3-923e-41e3a6384048")
 		(property "Reference" "C2"
-			(at 88.011 217.2716 0)
+			(at 76.962 217.3986 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -12719,7 +12735,7 @@
 			)
 		)
 		(property "Value" "100n"
-			(at 88.011 219.583 0)
+			(at 76.962 219.71 0)
 			(effects
 				(font
 					(size 1.27 1.27)
