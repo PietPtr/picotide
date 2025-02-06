@@ -67,6 +67,10 @@ fn main() -> ! {
 
     info!("Hoi!");
 
+    // TODO: test patched minsync board
+    // TODO: test LED on PWM hardware / investigate other resistor
+    // TODO: test power rings
+
     let mut i2c = I2C::i2c1(
         pac.I2C1,
         pins.si_sda.reconfigure(),
