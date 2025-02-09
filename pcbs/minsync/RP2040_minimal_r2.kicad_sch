@@ -2138,198 +2138,6 @@
 				)
 			)
 		)
-		(symbol "GND_5"
-			(power)
-			(pin_numbers hide)
-			(pin_names
-				(offset 0) hide)
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(property "Reference" "#PWR"
-				(at 0 -6.35 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Value" "GND"
-				(at 0 -3.81 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Footprint" ""
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Datasheet" ""
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "ki_keywords" "global power"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(symbol "GND_5_0_1"
-				(polyline
-					(pts
-						(xy 0 0) (xy 0 -1.27) (xy 1.27 -1.27) (xy 0 -2.54) (xy -1.27 -1.27) (xy 0 -1.27)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-			)
-			(symbol "GND_5_1_1"
-				(pin power_in line
-					(at 0 0 270)
-					(length 0)
-					(name "~"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-		)
-		(symbol "GND_6"
-			(power)
-			(pin_numbers hide)
-			(pin_names
-				(offset 0) hide)
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(property "Reference" "#PWR"
-				(at 0 -6.35 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Value" "GND"
-				(at 0 -3.81 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Footprint" ""
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Datasheet" ""
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "ki_keywords" "global power"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(symbol "GND_6_0_1"
-				(polyline
-					(pts
-						(xy 0 0) (xy 0 -1.27) (xy 1.27 -1.27) (xy 0 -2.54) (xy -1.27 -1.27) (xy 0 -1.27)
-					)
-					(stroke
-						(width 0)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-			)
-			(symbol "GND_6_1_1"
-				(pin power_in line
-					(at 0 0 270)
-					(length 0)
-					(name "~"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-		)
 		(symbol "GND_7"
 			(power)
 			(pin_numbers hide)
@@ -5648,6 +5456,14 @@
 		(uuid "fd05efcf-3c53-4998-a352-372c6ea57ae6")
 	)
 	(no_connect
+		(at 50.8 222.25)
+		(uuid "4eb633a7-8af6-40ee-a2a4-982b3ca1936a")
+	)
+	(no_connect
+		(at 50.8 232.41)
+		(uuid "5cbd266c-c1b2-4792-b5f0-6ad9f8427db0")
+	)
+	(no_connect
 		(at 166.37 152.4)
 		(uuid "a1f9a99a-c3fa-40cd-b474-ba8082ec34ea")
 	)
@@ -7285,7 +7101,7 @@
 		)
 		(uuid "f9e1d5c6-6630-48d6-849f-a5938af673cb")
 	)
-	(text "TODO:\nx Si5351: \"Unused VDDO pins should be tied to VDD\"\nboard-to-board connector for SWD can exist together with headers\nx Does the screen work?\nx Can the board run programs for a long time?\nx Reverse engineer Si5351 dev board and compare\nRe-order vias for north connector\nx Less bright LED? -> doubled resistance\ncrystal lines not under crystal but around\nx decoupling cap on VDDO\npullups necessary on the i2c line to si5351? -> doubt it, screen works"
+	(text "TODO:\nx Si5351: \"Unused VDDO pins should be tied to VDD\"\nx board-to-board connector for SWD can exist together with headers\nchange footprint to work with component for JST SWD\nx Does the screen work?\nx Can the board run programs for a long time?\nx Reverse engineer Si5351 dev board and compare\nx Re-order vias for north connector\nx Less bright LED? -> doubled resistance\nx crystal lines not under crystal but around\nx decoupling cap on VDDO\nx pullups necessary on the i2c line to si5351? -> doubt it, screen works\nmight have to select other voltage regulator\ntest power ring setup on v0.1 hardware\nuse XC6206 voltage regulator? -> may not be powerful enough"
 		(exclude_from_sim no)
 		(at 134.874 17.526 0)
 		(effects
@@ -7308,13 +7124,13 @@
 		(uuid "05476628-bbb2-46bc-b7d9-aec6e140afa5")
 	)
 	(label "GPIO24"
-		(at 386.08 86.36 0)
+		(at 373.38 86.36 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
-			(justify left bottom)
+			(justify right bottom)
 		)
 		(uuid "05c39a08-a098-4e9b-9af8-487e389486be")
 	)
@@ -7385,13 +7201,13 @@
 		(uuid "1b7cedb8-1438-48f8-91e9-0aa11af71116")
 	)
 	(label "GPIO21"
-		(at 373.38 91.44 180)
+		(at 386.08 72.39 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
-			(justify right bottom)
+			(justify left bottom)
 		)
 		(uuid "1f83c66b-6ba5-4098-aae5-be994d104f91")
 	)
@@ -7704,13 +7520,13 @@
 		(uuid "6fa3bcb0-ad07-4cb6-9a30-dc613a914bee")
 	)
 	(label "GPIO17"
-		(at 386.08 72.39 0)
+		(at 373.38 67.31 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
-			(justify left bottom)
+			(justify right bottom)
 		)
 		(uuid "6fab44bd-9ae8-4f08-8322-f977b69b4c61")
 	)
@@ -7768,6 +7584,17 @@
 			(justify right bottom)
 		)
 		(uuid "86ac283d-a915-4137-bf09-0c1b299c3471")
+	)
+	(label "GPIO14"
+		(at 74.93 242.57 180)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "875d2300-92c1-41fb-b90c-1195c2019a35")
 	)
 	(label "GPIO10"
 		(at 245.11 137.16 180)
@@ -7869,7 +7696,7 @@
 		(uuid "a4bc23fd-c864-4e12-92fa-b875b5bf0a19")
 	)
 	(label "GPIO27_ADC1"
-		(at 74.93 240.03 180)
+		(at 373.38 88.9 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -7891,13 +7718,13 @@
 		(uuid "aa871ee6-e2af-48ea-af9e-86b8a650c152")
 	)
 	(label "GPIO12"
-		(at 373.38 67.31 180)
+		(at 328.93 163.83 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
-			(justify right bottom)
+			(justify left bottom)
 		)
 		(uuid "ab57aaf7-2655-44db-b17f-df85ff5cca36")
 	)
@@ -7935,13 +7762,13 @@
 		(uuid "b029a9ea-6d21-4859-87a1-89576f0f81bf")
 	)
 	(label "GPIO18"
-		(at 373.38 86.36 180)
+		(at 386.08 69.85 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
-			(justify right bottom)
+			(justify left bottom)
 		)
 		(uuid "b0e9e2bf-ab15-4e44-bba4-a1a7d4a62121")
 	)
@@ -8056,7 +7883,7 @@
 		(uuid "c6125a44-5e65-43af-9cd7-c8bc4162bca7")
 	)
 	(label "GPIO28_ADC2"
-		(at 328.93 163.83 0)
+		(at 386.08 91.44 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -8120,6 +7947,17 @@
 			(justify left bottom)
 		)
 		(uuid "e0ce0c1f-9b1c-4179-9f8a-37b75a0aa09e")
+	)
+	(label "GPIO15"
+		(at 74.93 240.03 180)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify right bottom)
+		)
+		(uuid "e0ed8a0d-694a-4365-82a2-5ba4d2d717b6")
 	)
 	(label "GPIO20"
 		(at 176.53 226.06 0)
@@ -8188,7 +8026,7 @@
 		(uuid "ec0f518e-efb2-4948-ab7f-8a3cab10f3a7")
 	)
 	(label "GPIO23"
-		(at 386.08 88.9 0)
+		(at 386.08 86.36 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -8210,29 +8048,18 @@
 		(uuid "ef2915c6-c830-4ae4-81ba-b489944b72ac")
 	)
 	(label "GPIO22"
-		(at 386.08 91.44 0)
+		(at 373.38 72.39 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
-			(justify left bottom)
+			(justify right bottom)
 		)
 		(uuid "efc8a0b1-250a-460b-8441-aa53df1bc5b2")
 	)
-	(label "GPIO15"
-		(at 386.08 67.31 0)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "effc80f4-8435-4edb-8962-4a6552dcc617")
-	)
 	(label "GPIO16"
-		(at 386.08 69.85 0)
+		(at 386.08 67.31 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -8243,29 +8070,29 @@
 		(uuid "f3c630ed-e1cd-49d0-a051-2126df4458c6")
 	)
 	(label "GPIO26_ADC0"
-		(at 74.93 242.57 180)
+		(at 386.08 88.9 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
-			(justify right bottom)
+			(justify left bottom)
 		)
 		(uuid "f3d7c991-6d9d-4f19-aac2-c72c5ab6d9e5")
 	)
 	(label "GPIO13"
-		(at 373.38 69.85 180)
+		(at 328.93 166.37 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
-			(justify right bottom)
+			(justify left bottom)
 		)
 		(uuid "f5e3659d-159d-4a6b-9452-38b5bb5167ce")
 	)
 	(label "GPIO19"
-		(at 373.38 88.9 180)
+		(at 373.38 69.85 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -8287,13 +8114,13 @@
 		(uuid "f9e191e0-ff91-4762-9d1e-8c449a5aa8ea")
 	)
 	(label "GPIO29_ADC3"
-		(at 328.93 166.37 0)
+		(at 373.38 91.44 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
-			(justify left bottom)
+			(justify right bottom)
 		)
 		(uuid "fabacfe6-b773-45cb-86b7-0db3bd35d09f")
 	)
@@ -8307,17 +8134,6 @@
 			(justify right bottom)
 		)
 		(uuid "fb11c56a-0cbb-471c-8cdc-21e68c51a034")
-	)
-	(label "GPIO14"
-		(at 373.38 72.39 180)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify right bottom)
-		)
-		(uuid "fe4a2331-fcd9-4f65-9e68-488492186657")
 	)
 	(symbol
 		(lib_id "MCU_RaspberryPi_RP2040:RP2040")
@@ -11695,7 +11511,7 @@
 				)
 			)
 		)
-		(property "Footprint" ""
+		(property "Footprint" "Connector_JST:JST_ACH_BM03B-ACHSS-GAN-ETF_1x03-1MP_P1.20mm_Vertical"
 			(at 308.61 53.34 0)
 			(effects
 				(font
@@ -11714,6 +11530,15 @@
 			)
 		)
 		(property "Description" "Generic connector, single row, 01x03, script generated (kicad-library-utils/schlib/autogen/connector/)"
+			(at 308.61 53.34 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "LCSC" "C160389"
 			(at 308.61 53.34 0)
 			(effects
 				(font
@@ -12169,73 +11994,6 @@
 		)
 	)
 	(symbol
-		(lib_name "GND_5")
-		(lib_id "power:GND")
-		(at 50.8 232.41 0)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "5de6fbdf-f820-4cb4-9747-e428be4eb39a")
-		(property "Reference" "#PWR046"
-			(at 50.8 238.76 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Value" "GND"
-			(at 50.8 237.49 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 50.8 232.41 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" ""
-			(at 50.8 232.41 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 50.8 232.41 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "1"
-			(uuid "40400225-72bf-4f2e-9a76-a04cfabbe8f2")
-		)
-		(instances
-			(project ""
-				(path "/8c0b3d8b-46d3-4173-ab1e-a61765f77d61"
-					(reference "#PWR046")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "Jumper:SolderJumper_2_Open")
 		(at 156.21 226.06 0)
 		(unit 1)
@@ -12540,73 +12298,6 @@
 			(project ""
 				(path "/8c0b3d8b-46d3-4173-ab1e-a61765f77d61"
 					(reference "U4")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_name "GND_6")
-		(lib_id "power:GND")
-		(at 50.8 222.25 180)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "8dec7da8-f916-4ce1-96d3-5332adc63764")
-		(property "Reference" "#PWR047"
-			(at 50.8 215.9 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Value" "GND"
-			(at 50.8 217.17 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 50.8 222.25 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" ""
-			(at 50.8 222.25 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 50.8 222.25 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "1"
-			(uuid "5faa986b-d15b-4198-ad25-f12bb3fcd2f9")
-		)
-		(instances
-			(project ""
-				(path "/8c0b3d8b-46d3-4173-ab1e-a61765f77d61"
-					(reference "#PWR047")
 					(unit 1)
 				)
 			)
@@ -13349,7 +13040,7 @@
 			)
 		)
 		(pin "1"
-			(uuid "6e8257f0-4927-4b2b-b3a4-7d3b9934b6c9")
+			(uuid "6e8257f0-4927-4b2b-b3a4-7d3b9934b6ca")
 		)
 		(instances
 			(project ""
