@@ -17,7 +17,7 @@ state_machine! {
     struct Input {}
 
     struct Output {
-        sum: Option<i32>
+        pub sum: Option<i32>
     }
 
     impl {
@@ -28,14 +28,15 @@ state_machine! {
                 State::Delay { delay: delay - 1 }
             };
 
-            None
+            Output { sum: None }
         }
         Start => {
             self.state = State::GenerateAndCompute {
                 iterations: self.configuration.start_iterations,
                 sum: 0,
             };
-            None
+
+            Output { sum: None}
         }
         GenerateAndCompute { iterations, sum } => {
             const ROSC_RANDOM_BIT_ADDRESS: *const u32 = (0x40060000 + 0x1c) as *const u32;

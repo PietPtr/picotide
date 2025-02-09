@@ -1,8 +1,9 @@
-use proc_macro2::{Group, Span, TokenStream as TokenStream2};
+use proc_macro2::{Group, Punct, Spacing, Span, TokenStream as TokenStream2, TokenTree};
 use quote::{quote, ToTokens};
 use syn::{
     parse::{Parse, ParseStream},
-    Ident, Token,
+    visit_mut::VisitMut,
+    ExprGroup, Ident, Token,
 };
 
 struct NameDef {
@@ -48,6 +49,15 @@ enum StructOrEnum {
     Enum,
 }
 
+impl StructOrEnum {
+    fn token(&self) -> TokenStream2 {
+        match self {
+            StructOrEnum::Struct => "struct".parse::<TokenStream2>().unwrap(),
+            StructOrEnum::Enum => "enum".parse::<TokenStream2>().unwrap(),
+        }
+    }
+}
+
 impl Parse for StructOrEnum {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let lookahead = input.lookahead1();
@@ -67,7 +77,7 @@ struct ConfigurationDef {
     /// struct or enum
     kind: StructOrEnum,
     /// literally the word Configuration
-    _configuration_token: Ident,
+    configuration_token: Ident,
     /// Body of the type
     group: Group,
     rest: TokenStream2,
@@ -77,7 +87,7 @@ impl Parse for ConfigurationDef {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         Ok(ConfigurationDef {
             kind: input.parse()?,
-            _configuration_token: parse_hard_string(
+            configuration_token: parse_hard_string(
                 input,
                 "Configuration",
                 concat!(
@@ -94,7 +104,7 @@ impl Parse for ConfigurationDef {
 
 struct StateDef {
     _enum: Token![enum],
-    _state_token: Ident,
+    state_token: Ident,
     group: Group,
     rest: TokenStream2,
 }
@@ -111,7 +121,7 @@ impl Parse for StateDef {
 
         Ok(StateDef {
             _enum: input.parse()?,
-            _state_token: parse_hard_string(
+            state_token: parse_hard_string(
                 input,
                 "State",
                 concat!(
@@ -191,29 +201,165 @@ impl Parse for ImplDef {
     }
 }
 
+impl ImplDef {
+    pub fn validate_and_convert(
+        &mut self,
+        state_enum_name: Ident,
+        input_type_name: Ident,
+        output_type_name: Ident,
+    ) {
+        // Iterate through the top level tokens, among these will be identifiers which are
+        // the state names and those'll have to be prefixed by the state type.
+        // All encountered groups should have replace_ident_in_group applied to them to
+        // replace the state, input, and output type.
+        let new_stream = self
+            .group
+            .stream()
+            .into_iter()
+            .flat_map(|token| match token {
+                TokenTree::Group(group) => {
+                    let new_group =
+                        replace_ident_in_group(&group, "State", &state_enum_name.to_string());
+                    let new_group =
+                        replace_ident_in_group(&new_group, "Input", &input_type_name.to_string());
+                    let new_group =
+                        replace_ident_in_group(&new_group, "Output", &output_type_name.to_string());
+
+                    vec![TokenTree::Group(new_group)].into_iter()
+                }
+                TokenTree::Ident(ident) => vec![
+                    TokenTree::Ident(state_enum_name.clone()),
+                    TokenTree::Punct(Punct::new(':', Spacing::Joint)),
+                    TokenTree::Punct(Punct::new(':', Spacing::Alone)),
+                    TokenTree::Ident(ident),
+                ]
+                .into_iter(),
+                token => vec![token].into_iter(), // Wrap other tokens in a single-item iterator
+            })
+            .collect();
+
+        self.group = Group::new(self.group.delimiter(), new_stream);
+
+        // panic!("{:#?}", self.group);
+    }
+}
+
+fn replace_ident_in_group(group: &Group, target: &str, replacement: &str) -> Group {
+    let new_stream = group
+        .stream()
+        .into_iter()
+        .map(|token| match token {
+            TokenTree::Ident(ident) if ident == target => {
+                TokenTree::Ident(Ident::new(replacement, ident.span()))
+            }
+            TokenTree::Group(inner_group) => TokenTree::Group(Group::new(
+                inner_group.delimiter(),
+                replace_ident_in_group(&inner_group, target, replacement).stream(),
+            )),
+            other => other,
+        })
+        .collect();
+
+    Group::new(group.delimiter(), new_stream)
+}
+
 /// Parses a given state machine definition, then reworks it into a nice compilable trait implementation of StateMachine
 #[proc_macro]
 pub fn state_machine(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let name_definition = syn::parse_macro_input!(input as NameDef);
+    // Parse definition
+    let name_def = syn::parse_macro_input!(input as NameDef);
 
-    let rest = name_definition.rest.into();
-    let configuration_struct = syn::parse_macro_input!(rest as ConfigurationDef);
+    let rest = name_def.rest.into();
+    let configuration_def = syn::parse_macro_input!(rest as ConfigurationDef);
 
-    let rest = configuration_struct.rest.into();
-    let state_struct = syn::parse_macro_input!(rest as StateDef);
+    let rest = configuration_def.rest.into();
+    let state_def = syn::parse_macro_input!(rest as StateDef);
 
-    let rest = state_struct.rest.into();
-    let input_struct = syn::parse_macro_input!(rest as InputDef);
+    let rest = state_def.rest.into();
+    let input_def = syn::parse_macro_input!(rest as InputDef);
 
-    let rest = input_struct.rest.into();
-    let output_struct = syn::parse_macro_input!(rest as OutputDef);
+    let rest = input_def.rest.into();
+    let output_def = syn::parse_macro_input!(rest as OutputDef);
 
-    let rest = output_struct.rest.into();
-    let impl_struct = syn::parse_macro_input!(rest as ImplDef);
+    let rest = output_def.rest.into();
+    let mut impl_def = syn::parse_macro_input!(rest as ImplDef);
+
+    // Construct valid Rust
+    let state_machine_name = name_def.name.clone();
+
+    let configuration_type_name = Ident::new(
+        &format!("{}Configuration", name_def.name),
+        configuration_def.configuration_token.span(),
+    );
+    let configuration_kind = configuration_def.kind.token();
+    let configuration_type_body = configuration_def.group;
+
+    let state_enum_name = Ident::new(
+        &format!("{}State", name_def.name),
+        state_def.state_token.span(),
+    );
+    let state_enum_body = state_def.group;
+
+    let input_kind = input_def.kind.token();
+    let input_type_name = Ident::new(
+        &format!("{}Input", name_def.name),
+        input_def.input_token.span(),
+    );
+    let input_body = input_def.group;
+
+    let output_kind = output_def.kind.token();
+    let output_type_name = Ident::new(
+        &format!("{}Output", name_def.name),
+        output_def.input_token.span(),
+    );
+    let output_body = output_def.group;
+
+    // impl_def.exchange_all_names(
+    //     state_enum_name.clone(),
+    //     input_type_name.clone(),
+    //     output_type_name.clone(),
+    // );
+    // let impl_group = impl_def.group;
+    // let impl_group = replace_ident_in_group(&impl_group, "State", &state_enum_name.to_string());
+
+    impl_def.validate_and_convert(
+        state_enum_name.clone(),
+        input_type_name.clone(),
+        output_type_name.clone(),
+    );
+    let impl_body = impl_def.group;
 
     let expanded = quote! {
-        const HOI: &str = "yea";
+        pub struct #state_machine_name <'a> {
+            state: #state_enum_name,
+            configuration: &'a #configuration_type_name
+        }
+
+        pub #configuration_kind #configuration_type_name #configuration_type_body
+        pub enum #state_enum_name #state_enum_body
+        pub #input_kind #input_type_name #input_body
+        pub #output_kind #output_type_name #output_body
+
+        impl<'a> surf_lang::StateMachine<'a, #input_type_name, #output_type_name> for #state_machine_name <'a> {
+            type State = #state_enum_name;
+            type Configuration = #configuration_type_name;
+
+            fn init(state: Self::State, configuration: &'a Self::Configuration) -> Self {
+                Self {
+                    state,
+                    configuration,
+                }
+            }
+
+            fn next(&mut self, input: #input_type_name) -> #output_type_name {
+                match self.state #impl_body
+            }
+        }
     };
+
+    // TODO: now that we have impl_body we can also secondarily start generating the lib.rs for compiling state machines
+    // TODO: runtime in cycles analysis of compiled branches
+    // TODO: strict checking of boundedness of code in state machine branches
 
     proc_macro::TokenStream::from(expanded)
 }

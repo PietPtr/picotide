@@ -1,5 +1,7 @@
 mod state_machines;
 
 fn main() {
-    println!("Hello, world!");
+    // TODO: compose these state machines and design composition library,
+    // TODO: make all the network definitions
+    // TODO: code for checking if the composition fits on the network
 }
