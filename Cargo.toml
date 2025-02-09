@@ -10,9 +10,10 @@ members = [
     "controllers",
     "bittide",
     "bittide-impls",
-    "surf",
     "multibuild",
     "minsync",
+    "surf/surf-lang",
+    "surf/examples/*", "surf/surf-proc",
 ]
 
 [workspace.package]

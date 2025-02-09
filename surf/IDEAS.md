@@ -70,4 +70,16 @@ There's an algebra to the graph of state machines that'll be produced by a surf 
 
 Since it matters a lot for program throughput how many cycles each state of a state machine takes, tools should exist that evaluate that. As shown in [Enforcing Constant Time Execution](#enforcing-constant-execution-time), it is possible to define a subset of Rust for which an upper bound of the amount of cycles taken is computable. An expansion of Rust analyzer might be feasible which shows runtime statistics of each branch in a statemachine definition on save.
 
+
+## Implementation
+
+First implement an unsafe version of the language. This should include:
+
+1) Ergonomics to make creating and arranging state machines easy. This can be provided by a proc macro that takes care of the boiler plate and serves as a platform for checks on state machine branches later on.
+
+2) Compilation of the given arrangements to a set of binaries for Arm0+. The arrangement methods of before will result in code text that can be compiled by the rust compiler. The code text will include a library with _all_ state machine definitions, and a set of `main.rs` files (one for each node) instantiating and invoking the state machines as defined in the arrangement.
+
+3) Simulation of the arrangements. An arrangement of state machines should result in regular x86 compilable rust code as well (as long as no peripherals of the RP2040 are used, but a sim/compatibility layer could be engineered)
+
+
 ## The FPGA / Digital Hardware Analogy
