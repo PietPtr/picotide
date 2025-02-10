@@ -314,20 +314,14 @@ pub fn state_machine(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
     );
     let output_body = output_def.group;
 
-    // impl_def.exchange_all_names(
-    //     state_enum_name.clone(),
-    //     input_type_name.clone(),
-    //     output_type_name.clone(),
-    // );
-    // let impl_group = impl_def.group;
-    // let impl_group = replace_ident_in_group(&impl_group, "State", &state_enum_name.to_string());
-
     impl_def.validate_and_convert(
         state_enum_name.clone(),
         input_type_name.clone(),
         output_type_name.clone(),
     );
     let impl_body = impl_def.group;
+
+    // TODO: make all the fields public in the configuration, input, and output?
 
     let expanded = quote! {
         pub struct #state_machine_name <'a> {

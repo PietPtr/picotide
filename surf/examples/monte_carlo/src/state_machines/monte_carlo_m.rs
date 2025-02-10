@@ -5,7 +5,7 @@ state_machine! {
 
     struct Configuration {
         // The amount of iterations to run before publishing the sum
-        start_iterations: u32,
+        pub start_iterations: u32,
     }
 
     enum State {
