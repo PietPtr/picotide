@@ -329,22 +329,25 @@ pub fn state_machine(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
             configuration: &'a #configuration_type_name
         }
 
+        #[derive(Debug, Clone)]
         pub #configuration_kind #configuration_type_name #configuration_type_body
+        #[derive(Debug, Clone)]
         pub enum #state_enum_name #state_enum_body
+        #[derive(Debug, Clone)]
         pub #input_kind #input_type_name #input_body
+        #[derive(Debug, Clone)]
         pub #output_kind #output_type_name #output_body
 
-        impl<'a> surf_lang::StateMachine<'a, #input_type_name, #output_type_name> for #state_machine_name <'a> {
-            type State = #state_enum_name;
-            type Configuration = #configuration_type_name;
-
-            fn init(state: Self::State, configuration: &'a Self::Configuration) -> Self {
+        impl<'a> #state_machine_name <'a> {
+            pub fn new(initial_state: #state_enum_name, configuration: &'a #configuration_type_name) -> Self {
                 Self {
-                    state,
-                    configuration,
+                    state: initial_state,
+                    configuration
                 }
             }
+        }
 
+        impl<'a> surf_lang::state_machine::StateMachine<#input_type_name, #output_type_name> for #state_machine_name <'a> {
             fn next(&mut self, input: #input_type_name) -> #output_type_name {
                 match self.state #impl_body
             }
@@ -357,3 +360,5 @@ pub fn state_machine(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
 
     proc_macro::TokenStream::from(expanded)
 }
+
+// TODO: custom derives for SurfSerialize and SurfDeserialize

@@ -1,7 +1,4 @@
-pub trait StateMachine<'a, I, O> {
-    type State;
-    type Configuration;
-
-    fn init(state: Self::State, configuration: &'a Self::Configuration) -> Self;
-    fn next(&mut self, input: I) -> O;
-}
+pub mod node;
+pub mod pitopi_minsync;
+pub mod program;
+pub mod state_machine;
