@@ -94,8 +94,6 @@ fn main() -> ! {
     info!("Hoi!");
     // info!("sysdiv {} {}", sysdiv_int, sysdiv_frac);
 
-    // TODO: test power rings
-
     let mut i2c = I2C::i2c1(
         pac.I2C1,
         pins.si_sda.reconfigure(),
@@ -110,27 +108,27 @@ fn main() -> ! {
     let register_address = 0;
     // let result = i2c.write_read(si5351_i2c_address, &[register_address], &mut buffer);
     // let result = i2c.write(si5351_i2c_address, &[register_address]);
-
-    info!("initting display");
-
-    let i2c_display = I2C::i2c0(
-        pac.I2C0,
-        pins.oled_sda.reconfigure(),
-        pins.oled_scl.reconfigure(),
-        100.kHz(),
-        &mut pac.RESETS,
-        &clocks.system_clock,
-    );
-
-    let mut display: GraphicsMode<_> = Builder::new().connect_i2c(i2c_display).into();
-    display.init().unwrap();
-    let style = MonoTextStyle::new(&FONT_4X6, BinaryColor::On);
-    Text::new("Hello!", Point::new(0, 10), style)
-        .draw(&mut display)
-        .unwrap();
-    display.flush().unwrap();
-
     // info!("result {:?} {:?}", result, buffer);
+
+    // TODO: move to its own display example
+    // info!("initting display");
+
+    // let i2c_display = I2C::i2c0(
+    //     pac.I2C0,
+    //     pins.oled_sda.reconfigure(),
+    //     pins.oled_scl.reconfigure(),
+    //     100.kHz(),
+    //     &mut pac.RESETS,
+    //     &clocks.system_clock,
+    // );
+
+    // let mut display: GraphicsMode<_> = Builder::new().connect_i2c(i2c_display).into();
+    // display.init().unwrap();
+    // let style = MonoTextStyle::new(&FONT_4X6, BinaryColor::On);
+    // Text::new("Hello!", Point::new(0, 10), style)
+    //     .draw(&mut display)
+    //     .unwrap();
+    // display.flush().unwrap();
 
     let mut pwm_slices = hal::pwm::Slices::new(pac.PWM, &mut pac.RESETS);
     let pwm = &mut pwm_slices.pwm2;
@@ -142,32 +140,22 @@ fn main() -> ! {
 
     let mut i = 0;
 
-    const SYST_RVR: u32 = 0xffffff;
-    pac.PPB.syst_csr().write(|w| unsafe { w.bits(0b001) });
-    pac.PPB.syst_rvr().write(|w| unsafe { w.bits(SYST_RVR) });
-    loop {
-        for _ in 0..900000 {
-            // gpout_test.toggle().unwrap();
-            asm::nop();
-        }
-        let syst_value = pac.PPB.syst_cvr().read().current().bits();
-        info!("hoi {} {}", i, syst_value);
-        i += 1;
+    let mut si_clock = Si5351Device::new(i2c, false, minsync::SI5351_CRYSTAL_FREQ);
+
+    let status = si_clock.read_device_status().unwrap().bits();
+
+    info!("Created SI device. {:?}", status);
+
+    let test = si_clock.init(si5351::CrystalLoad::_8);
+
+    info!("tried init SI: {:?}", test.is_err());
+
+    // TODO: fork library and add clearer error messages
+    match test {
+        Ok(()) => {}
+        Err(si5351::Error::CommunicationError) => info!("SI comm error"),
+        Err(si5351::Error::InvalidParameter) => info!("SI invalid param"),
     }
-
-    // let mut si_clock = Si5351Device::new(i2c, false, minsync::SI5351_CRYSTAL_FREQ);
-
-    // info!("Created SI device.");
-
-    // let test = si_clock.init(si5351::CrystalLoad::_8);
-
-    // info!("tried init SI: {:?}", test.is_err());
-
-    // match test {
-    //     Ok(()) => {}
-    //     Err(si5351::Error::CommunicationError) => info!("SI comm error"),
-    //     Err(si5351::Error::InvalidParameter) => info!("SI invalid param"),
-    // }
 
     // si_clock
     //     .set_frequency(
@@ -237,4 +225,6 @@ fn main() -> ! {
     //     //     flashes = 0;
     //     // }
     // }
+
+    loop {}
 }
