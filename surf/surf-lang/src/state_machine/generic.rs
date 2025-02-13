@@ -93,24 +93,46 @@ where
     }
 }
 
-// Doesn't really help
-// impl<T, I1, I2, I3, O1, O2, O3> StateMachine<(I1, I2, I3), (O1, O2, O3)> for T
-// where
-//     T: StateMachine<((I1, I2), I3), ((O1, O2), O3)>,
-// {
-//     fn next(&mut self, (i1, i2, i3): (I1, I2, I3)) -> (O1, O2, O3) {
-//         let ((o1, o2), o3) = self.next(((i1, i2), i3));
-//         (o1, o2, o3)
-//     }
-// }
+#[derive(Debug, Default)]
+pub struct Swap<I1, I2> {
+    _marker: PhantomData<(I1, I2)>,
+}
 
-// Conflicting definitions :/
-// impl<T, I1, I2, I3, O1, O2, O3> StateMachine<(I1, I2, I3), (O1, O2, O3)> for T
-// where
-//     T: StateMachine<(I1, (I2, I3)), (O1, (O2, O3))>,
-// {
-//     fn next(&mut self, input: (I1, I2, I3)) -> (O1, O2, O3) {
-//         let (o1, (o2, o3)) = self.next((i1, (i2, i3)));
-//         (o1, o2, o3)
-//     }
-// }
+impl<I1, I2> Swap<I1, I2> {
+    pub fn new() -> Self {
+        Self {
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl<I1, I2> StateMachine<(I1, I2), (I2, I1)> for Swap<I1, I2> {
+    fn next(&mut self, (i1, i2): (I1, I2)) -> (I2, I1) {
+        (i2, i1)
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct Flatten3<I1, I2, I3> {
+    _marker: PhantomData<(I1, I2, I3)>,
+}
+
+impl<I1, I2, I3> Flatten3<I1, I2, I3> {
+    pub fn new() -> Self {
+        Self {
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl<I1, I2, I3> StateMachine<((I1, I2), I3), (I1, I2, I3)> for Flatten3<I1, I2, I3> {
+    fn next(&mut self, ((i1, i2), i3): ((I1, I2), I3)) -> (I1, I2, I3) {
+        (i1, i2, i3)
+    }
+}
+
+impl<I1, I2, I3> StateMachine<(I1, (I2, I3)), (I1, I2, I3)> for Flatten3<I1, I2, I3> {
+    fn next(&mut self, (i1, (i2, i3)): (I1, (I2, I3))) -> (I1, I2, I3) {
+        (i1, i2, i3)
+    }
+}

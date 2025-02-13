@@ -1,0 +1,9 @@
+[package]
+name = "fir"
+version = "0.1.0"
+edition = "2021"
+rust-version.workspace = true
+
+[dependencies]
+surf-lang = { path = "../../surf-lang" }
+surf-proc = { path = "../../surf-proc" }

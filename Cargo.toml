@@ -12,8 +12,9 @@ members = [
     "bittide-impls",
     "multibuild",
     "minsync",
+    "surf/surf-proc",
     "surf/surf-lang",
-    "surf/examples/*", "surf/surf-proc",
+    "surf/examples/*",
 ]
 
 [workspace.package]

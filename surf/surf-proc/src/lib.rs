@@ -322,6 +322,10 @@ pub fn state_machine(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
     let impl_body = impl_def.group;
 
     // TODO: make all the fields public in the configuration, input, and output?
+    // TODO: support derives
+    // TODO: force state update in the return type of the match statement? (currently just output, could be (output, state))
+    // TODO: implement default for state? and/or a shorthand init which takes only a configuration
+    // TODO: should configurations be an rc? might be easier
 
     let expanded = quote! {
         pub struct #state_machine_name <'a> {
