@@ -5360,6 +5360,12 @@
 		(uuid "74a023e9-4461-4294-9c9f-dc16905b3c7b")
 	)
 	(junction
+		(at 64.77 240.03)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "8c13fe26-d883-422c-846b-d5dbfeed94df")
+	)
+	(junction
 		(at 177.8 60.96)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -5400,6 +5406,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "c2d6f9d1-0f82-4979-bac9-57a68dd6848b")
+	)
+	(junction
+		(at 72.39 242.57)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "c34be4aa-3fa8-41e3-9407-48c0e24cf3d0")
 	)
 	(junction
 		(at 63.5 125.73)
@@ -5697,6 +5709,16 @@
 	)
 	(wire
 		(pts
+			(xy 60.96 240.03) (xy 64.77 240.03)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "2accb20b-03aa-4967-97a0-f4cbc49734b3")
+	)
+	(wire
+		(pts
 			(xy 246.38 69.85) (xy 246.38 72.39)
 		)
 		(stroke
@@ -5754,6 +5776,16 @@
 			(type default)
 		)
 		(uuid "330d4b5a-def8-4c11-b4de-eb3aee7796e7")
+	)
+	(wire
+		(pts
+			(xy 60.96 242.57) (xy 72.39 242.57)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "34cae324-8a53-4459-abd2-889307a40015")
 	)
 	(wire
 		(pts
@@ -5864,6 +5896,16 @@
 			(type default)
 		)
 		(uuid "498fc37f-e235-44ce-8d46-ca2886345bda")
+	)
+	(wire
+		(pts
+			(xy 64.77 240.03) (xy 74.93 240.03)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "4b434bea-440a-4603-820e-071553cd15f0")
 	)
 	(wire
 		(pts
@@ -6347,6 +6389,16 @@
 	)
 	(wire
 		(pts
+			(xy 64.77 240.03) (xy 64.77 246.38)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "98d032b5-c47f-47c6-8f1b-22577b2cb368")
+	)
+	(wire
+		(pts
 			(xy 229.87 119.38) (xy 245.11 119.38)
 		)
 		(stroke
@@ -6827,6 +6879,16 @@
 	)
 	(wire
 		(pts
+			(xy 72.39 242.57) (xy 74.93 242.57)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "ec48221e-d71e-4fb9-b5be-9de2c4c1af18")
+	)
+	(wire
+		(pts
 			(xy 185.42 81.28) (xy 180.34 81.28)
 		)
 		(stroke
@@ -6977,6 +7039,16 @@
 	)
 	(wire
 		(pts
+			(xy 72.39 242.57) (xy 72.39 246.38)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "fa744b3e-6f35-491b-a10b-3a0c070b5b08")
+	)
+	(wire
+		(pts
 			(xy 63.5 106.68) (xy 63.5 105.41)
 		)
 		(stroke
@@ -7101,7 +7173,7 @@
 		)
 		(uuid "f9e1d5c6-6630-48d6-849f-a5938af673cb")
 	)
-	(text "TODO:\nx Si5351: \"Unused VDDO pins should be tied to VDD\"\nx board-to-board connector for SWD can exist together with headers\nchange footprint to work with component for JST SWD\nx Does the screen work?\nx Can the board run programs for a long time?\nx Reverse engineer Si5351 dev board and compare\nx Re-order vias for north connector\nx Less bright LED? -> doubled resistance\nx crystal lines not under crystal but around\nx decoupling cap on VDDO\nx pullups necessary on the i2c line to si5351? -> doubt it, screen works\nx might have to select other voltage regulator\ntest power ring setup on v0.1 hardware\nCheck if the holes for bolts are big enough\neasier access ground for scope probes"
+	(text "TODO:\nx Si5351: \"Unused VDDO pins should be tied to VDD\"\nx board-to-board connector for SWD can exist together with headers\nx change footprint to work with component for JST SWD\nx Does the screen work?\nx Can the board run programs for a long time?\nx Reverse engineer Si5351 dev board and compare\nx Re-order vias for north connector\nx Less bright LED? -> doubled resistance\nx crystal lines not under crystal but around\nx decoupling cap on VDDO\nx pullups necessary on the i2c line to si5351\nx might have to select other voltage regulator\ntest power ring setup on v0.1 hardware\nCheck if the holes for bolts are big enough\ntest if bottom left 3v3 island works on v0.1"
 		(exclude_from_sim no)
 		(at 134.874 17.526 0)
 		(effects
@@ -7586,7 +7658,7 @@
 		(uuid "86ac283d-a915-4137-bf09-0c1b299c3471")
 	)
 	(label "GPIO14"
-		(at 74.93 242.57 180)
+		(at 60.96 242.57 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -7608,7 +7680,7 @@
 		(uuid "8a67e3e4-5d97-4850-90eb-9b01557df20b")
 	)
 	(label "SWD"
-		(at 313.69 55.88 0)
+		(at 313.69 50.8 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -7949,7 +8021,7 @@
 		(uuid "e0ce0c1f-9b1c-4179-9f8a-37b75a0aa09e")
 	)
 	(label "GPIO15"
-		(at 74.93 240.03 180)
+		(at 60.96 240.03 180)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -8037,7 +8109,7 @@
 		(uuid "edd9dbe5-de7d-489c-b3e5-1c65f1e2d5e8")
 	)
 	(label "SWCLK"
-		(at 313.69 50.8 0)
+		(at 313.69 55.88 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -11486,6 +11558,71 @@
 		)
 	)
 	(symbol
+		(lib_id "power:+3V3")
+		(at 64.77 254 180)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "310f627b-7e5f-4a2a-8325-5ac4f3db7fea")
+		(property "Reference" "#PWR036"
+			(at 64.77 250.19 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "+3V3"
+			(at 64.389 258.3942 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 64.77 254 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 64.77 254 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 64.77 254 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "cdde7387-5a47-4cc0-b735-92d57334745d")
+		)
+		(instances
+			(project "RP2040_minimal_r2"
+				(path "/8c0b3d8b-46d3-4173-ab1e-a61765f77d61"
+					(reference "#PWR036")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "Connector_Generic:Conn_01x03")
 		(at 308.61 53.34 180)
 		(unit 1)
@@ -11511,7 +11648,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Connector_JST:JST_ACH_BM03B-ACHSS-GAN-ETF_1x03-1MP_P1.20mm_Vertical"
+		(property "Footprint" "Connector_JST:JST_SH_BM03B-SRSS-TB_1x03-1MP_P1.00mm_Vertical"
 			(at 308.61 53.34 0)
 			(effects
 				(font
@@ -11858,6 +11995,75 @@
 		)
 	)
 	(symbol
+		(lib_id "Device:R")
+		(at 72.39 250.19 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "4fa217ac-cfda-4753-9676-396287364ca5")
+		(property "Reference" "R4"
+			(at 74.168 249.0216 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "4.7k"
+			(at 74.168 251.333 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+			(at 70.612 250.19 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 72.39 250.19 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 72.39 250.19 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "d14fab95-c8b8-4297-a618-f86c62da8b0c")
+		)
+		(pin "2"
+			(uuid "278fb279-50e0-4140-b5a4-137f79b6c748")
+		)
+		(instances
+			(project "RP2040_minimal_r2"
+				(path "/8c0b3d8b-46d3-4173-ab1e-a61765f77d61"
+					(reference "R4")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_name "VBUS_2")
 		(lib_id "power:VBUS")
 		(at 373.38 74.93 90)
@@ -12056,6 +12262,71 @@
 			(project ""
 				(path "/8c0b3d8b-46d3-4173-ab1e-a61765f77d61"
 					(reference "JP1")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:+3V3")
+		(at 72.39 254 180)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "64518c6f-250f-4215-bc91-bd7e03951243")
+		(property "Reference" "#PWR037"
+			(at 72.39 250.19 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Value" "+3V3"
+			(at 72.009 258.3942 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 72.39 254 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 72.39 254 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 72.39 254 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "e07d59bf-5b1d-408f-a9f8-35a43cd00e1e")
+		)
+		(instances
+			(project "RP2040_minimal_r2"
+				(path "/8c0b3d8b-46d3-4173-ab1e-a61765f77d61"
+					(reference "#PWR037")
 					(unit 1)
 				)
 			)
@@ -13353,6 +13624,75 @@
 			(project ""
 				(path "/8c0b3d8b-46d3-4173-ab1e-a61765f77d61"
 					(reference "#PWR020")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 64.77 250.19 0)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp no)
+		(uuid "e1240b4b-9b2e-4352-8b8c-36a1cbea43a3")
+		(property "Reference" "R5"
+			(at 66.548 249.0216 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "4.7k"
+			(at 66.548 251.333 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+			(at 62.992 250.19 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" "~"
+			(at 64.77 250.19 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 64.77 250.19 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "6bab4fac-c639-4cb5-ad72-5e88e5a1ed9e")
+		)
+		(pin "2"
+			(uuid "db392b27-1065-454f-82b1-03610183a99f")
+		)
+		(instances
+			(project "RP2040_minimal_r2"
+				(path "/8c0b3d8b-46d3-4173-ab1e-a61765f77d61"
+					(reference "R5")
 					(unit 1)
 				)
 			)
