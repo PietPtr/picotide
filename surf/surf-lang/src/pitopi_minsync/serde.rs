@@ -1,7 +1,3 @@
-// pub str
-
-use bitvec::prelude::*;
-
 use crate::state_machine::{SurfDeserialize, SurfSerialize};
 
 /// The pitopi protocol reserves 3 bits for control on data words, so we can send 29 bits per transaction

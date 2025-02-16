@@ -124,7 +124,7 @@ where
         let south_input = InSouthT::deserialize(input[2]).unwrap();
         let west_input = InWestT::deserialize(input[3]).unwrap();
 
-        let output = self.state_machine.next(I::construct(
+        let output = self.state_machine.transition(I::construct(
             north_input,
             east_input,
             south_input,

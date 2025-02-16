@@ -36,7 +36,7 @@ fn main() {
     );
 
     for _ in 0..20 {
-        let out = node_compatible.next(input.clone());
+        let out = node_compatible.transition(input.clone());
         dbg!(out.north(), out.east(), out.south(), out.west());
     }
 }

@@ -352,7 +352,7 @@ pub fn state_machine(input: proc_macro::TokenStream) -> proc_macro::TokenStream 
         }
 
         impl<'a> surf_lang::state_machine::StateMachine<#input_type_name, #output_type_name> for #state_machine_name <'a> {
-            fn next(&mut self, input: #input_type_name) -> #output_type_name {
+            fn transition(&mut self, input: #input_type_name) -> #output_type_name {
                 match self.state #impl_body
             }
         }

@@ -7,7 +7,7 @@ where
     let mut outputs = Vec::with_capacity(inputs.len());
 
     for input in inputs {
-        outputs.push(state_machine.next(input));
+        outputs.push(state_machine.transition(input));
     }
 
     outputs

@@ -16,7 +16,7 @@ impl<T> UnitStateMachine<T> {
 }
 
 impl<I> StateMachine<I, I> for UnitStateMachine<I> {
-    fn next(&mut self, input: I) -> I {
+    fn transition(&mut self, input: I) -> I {
         input
     }
 }
@@ -50,9 +50,9 @@ where
     SM1: StateMachine<I, B>,
     SM2: StateMachine<B, O>,
 {
-    fn next(&mut self, input: I) -> O {
-        let between = self.left.next(input);
-        self.right.next(between)
+    fn transition(&mut self, input: I) -> O {
+        let between = self.left.transition(input);
+        self.right.transition(between)
     }
 }
 
@@ -86,9 +86,9 @@ where
     SM1: StateMachine<I1, O1>,
     SM2: StateMachine<I2, O2>,
 {
-    fn next(&mut self, input: (I1, I2)) -> (O1, O2) {
-        let o1 = self.upper.next(input.0);
-        let o2 = self.lower.next(input.1);
+    fn transition(&mut self, input: (I1, I2)) -> (O1, O2) {
+        let o1 = self.upper.transition(input.0);
+        let o2 = self.lower.transition(input.1);
         (o1, o2)
     }
 }
@@ -107,7 +107,7 @@ impl<I1, I2> Swap<I1, I2> {
 }
 
 impl<I1, I2> StateMachine<(I1, I2), (I2, I1)> for Swap<I1, I2> {
-    fn next(&mut self, (i1, i2): (I1, I2)) -> (I2, I1) {
+    fn transition(&mut self, (i1, i2): (I1, I2)) -> (I2, I1) {
         (i2, i1)
     }
 }
@@ -126,13 +126,135 @@ impl<I1, I2, I3> Flatten3<I1, I2, I3> {
 }
 
 impl<I1, I2, I3> StateMachine<((I1, I2), I3), (I1, I2, I3)> for Flatten3<I1, I2, I3> {
-    fn next(&mut self, ((i1, i2), i3): ((I1, I2), I3)) -> (I1, I2, I3) {
+    fn transition(&mut self, ((i1, i2), i3): ((I1, I2), I3)) -> (I1, I2, I3) {
         (i1, i2, i3)
     }
 }
 
+impl<I1, I2, I3> StateMachine<(I1, I2, I3), ((I1, I2), I3)> for Flatten3<I1, I2, I3> {
+    fn transition(&mut self, (i1, i2, i3): (I1, I2, I3)) -> ((I1, I2), I3) {
+        ((i1, i2), i3)
+    }
+}
+
 impl<I1, I2, I3> StateMachine<(I1, (I2, I3)), (I1, I2, I3)> for Flatten3<I1, I2, I3> {
-    fn next(&mut self, (i1, (i2, i3)): (I1, (I2, I3))) -> (I1, I2, I3) {
+    fn transition(&mut self, (i1, (i2, i3)): (I1, (I2, I3))) -> (I1, I2, I3) {
         (i1, i2, i3)
+    }
+}
+
+impl<I1, I2, I3> StateMachine<(I1, I2, I3), (I1, (I2, I3))> for Flatten3<I1, I2, I3> {
+    fn transition(&mut self, (i1, i2, i3): (I1, I2, I3)) -> (I1, (I2, I3)) {
+        (i1, (i2, i3))
+    }
+}
+
+// TODO: srictly speaking not all the impls are necessary if you make the right compositions with flatten3
+#[derive(Debug, Default)]
+pub struct Flatten4<I1, I2, I3, I4> {
+    _marker: PhantomData<(I1, I2, I3, I4)>,
+}
+
+impl<I1, I2, I3, I4> Flatten4<I1, I2, I3, I4> {
+    pub fn new() -> Self {
+        Self {
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl<I1, I2, I3, I4> StateMachine<(((I1, I2), I3), I4), (I1, I2, I3, I4)>
+    for Flatten4<I1, I2, I3, I4>
+{
+    fn transition(&mut self, (((i1, i2), i3), i4): (((I1, I2), I3), I4)) -> (I1, I2, I3, I4) {
+        (i1, i2, i3, i4)
+    }
+}
+
+impl<I1, I2, I3, I4> StateMachine<(I1, (I2, I3), I4), (I1, I2, I3, I4)>
+    for Flatten4<I1, I2, I3, I4>
+{
+    fn transition(&mut self, (i1, (i2, i3), i4): (I1, (I2, I3), I4)) -> (I1, I2, I3, I4) {
+        (i1, i2, i3, i4)
+    }
+}
+
+impl<I1, I2, I3, I4> StateMachine<((I1, I2), (I3, I4)), (I1, I2, I3, I4)>
+    for Flatten4<I1, I2, I3, I4>
+{
+    fn transition(&mut self, ((i1, i2), (i3, i4)): ((I1, I2), (I3, I4))) -> (I1, I2, I3, I4) {
+        (i1, i2, i3, i4)
+    }
+}
+
+impl<I1, I2, I3, I4> StateMachine<(I1, (I2, (I3, I4))), (I1, I2, I3, I4)>
+    for Flatten4<I1, I2, I3, I4>
+{
+    fn transition(&mut self, (i1, (i2, (i3, i4))): (I1, (I2, (I3, I4)))) -> (I1, I2, I3, I4) {
+        (i1, i2, i3, i4)
+    }
+}
+
+impl<I1, I2, I3, I4> StateMachine<(I1, (I2, I3, I4)), (I1, I2, I3, I4)>
+    for Flatten4<I1, I2, I3, I4>
+{
+    fn transition(&mut self, (i1, (i2, i3, i4)): (I1, (I2, I3, I4))) -> (I1, I2, I3, I4) {
+        (i1, i2, i3, i4)
+    }
+}
+
+impl<I1, I2, I3, I4> StateMachine<((I1, I2, I3), I4), (I1, I2, I3, I4)>
+    for Flatten4<I1, I2, I3, I4>
+{
+    fn transition(&mut self, ((i1, i2, i3), i4): ((I1, I2, I3), I4)) -> (I1, I2, I3, I4) {
+        (i1, i2, i3, i4)
+    }
+}
+
+impl<I1, I2, I3, I4> StateMachine<(I1, I2, I3, I4), (((I1, I2), I3), I4)>
+    for Flatten4<I1, I2, I3, I4>
+{
+    fn transition(&mut self, (i1, i2, i3, i4): (I1, I2, I3, I4)) -> (((I1, I2), I3), I4) {
+        (((i1, i2), i3), i4)
+    }
+}
+
+impl<I1, I2, I3, I4> StateMachine<(I1, I2, I3, I4), (I1, (I2, I3), I4)>
+    for Flatten4<I1, I2, I3, I4>
+{
+    fn transition(&mut self, (i1, i2, i3, i4): (I1, I2, I3, I4)) -> (I1, (I2, I3), I4) {
+        (i1, (i2, i3), i4)
+    }
+}
+
+impl<I1, I2, I3, I4> StateMachine<(I1, I2, I3, I4), ((I1, I2), (I3, I4))>
+    for Flatten4<I1, I2, I3, I4>
+{
+    fn transition(&mut self, (i1, i2, i3, i4): (I1, I2, I3, I4)) -> ((I1, I2), (I3, I4)) {
+        ((i1, i2), (i3, i4))
+    }
+}
+
+impl<I1, I2, I3, I4> StateMachine<(I1, I2, I3, I4), (I1, (I2, (I3, I4)))>
+    for Flatten4<I1, I2, I3, I4>
+{
+    fn transition(&mut self, (i1, i2, i3, i4): (I1, I2, I3, I4)) -> (I1, (I2, (I3, I4))) {
+        (i1, (i2, (i3, i4)))
+    }
+}
+
+impl<I1, I2, I3, I4> StateMachine<(I1, I2, I3, I4), (I1, (I2, I3, I4))>
+    for Flatten4<I1, I2, I3, I4>
+{
+    fn transition(&mut self, (i1, i2, i3, i4): (I1, I2, I3, I4)) -> (I1, (I2, I3, I4)) {
+        (i1, (i2, i3, i4))
+    }
+}
+
+impl<I1, I2, I3, I4> StateMachine<(I1, I2, I3, I4), ((I1, I2, I3), I4)>
+    for Flatten4<I1, I2, I3, I4>
+{
+    fn transition(&mut self, (i1, i2, i3, i4): (I1, I2, I3, I4)) -> ((I1, I2, I3), I4) {
+        ((i1, i2, i3), i4)
     }
 }
