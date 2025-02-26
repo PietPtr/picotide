@@ -839,168 +839,6 @@
 				)
 			)
 		)
-		(symbol "Connector:Conn_01x02_Socket"
-			(pin_names
-				(offset 1.016) hide)
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(property "Reference" "J"
-				(at 0 2.54 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Value" "Conn_01x02_Socket"
-				(at 0 -5.08 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Footprint" ""
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Datasheet" "~"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Description" "Generic connector, single row, 01x02, script generated"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "ki_locked" ""
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "ki_keywords" "connector"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "ki_fp_filters" "Connector*:*_1x??_*"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(symbol "Conn_01x02_Socket_1_1"
-				(arc
-					(start 0 -2.032)
-					(mid -0.5058 -2.54)
-					(end 0 -3.048)
-					(stroke
-						(width 0.1524)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy -1.27 -2.54) (xy -0.508 -2.54)
-					)
-					(stroke
-						(width 0.1524)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(polyline
-					(pts
-						(xy -1.27 0) (xy -0.508 0)
-					)
-					(stroke
-						(width 0.1524)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(arc
-					(start 0 0.508)
-					(mid -0.5058 0)
-					(end 0 -0.508)
-					(stroke
-						(width 0.1524)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(pin passive line
-					(at -5.08 0 0)
-					(length 3.81)
-					(name "Pin_1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at -5.08 -2.54 0)
-					(length 3.81)
-					(name "Pin_2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-		)
 		(symbol "Connector:Conn_01x04_Pin"
 			(pin_names
 				(offset 1.016) hide)
@@ -5492,12 +5330,6 @@
 		(uuid "1b4cea43-c993-4549-b9b2-a11a15956d24")
 	)
 	(junction
-		(at 38.1 62.23)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "1e2d7aba-453b-44ef-9a58-c93ae0c86414")
-	)
-	(junction
 		(at 168.91 60.96)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -5622,12 +5454,6 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "bd8f5fcf-903e-4ec8-94dd-d5627e2c020f")
-	)
-	(junction
-		(at 39.37 64.77)
-		(diameter 0)
-		(color 0 0 0 0)
-		(uuid "be709024-59de-4a38-8d77-53ae87f7a133")
 	)
 	(junction
 		(at 207.01 81.28)
@@ -6633,16 +6459,6 @@
 	)
 	(wire
 		(pts
-			(xy 38.1 62.23) (xy 41.91 62.23)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "987d6752-0dbc-48fd-b56d-0c363cb692e5")
-	)
-	(wire
-		(pts
 			(xy 64.77 240.03) (xy 64.77 246.38)
 		)
 		(stroke
@@ -6910,16 +6726,6 @@
 			(type default)
 		)
 		(uuid "c65d8d75-2858-471e-9dd0-06f41232fe2f")
-	)
-	(wire
-		(pts
-			(xy 39.37 64.77) (xy 41.91 64.77)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "c6f555b9-6497-4d5a-aa2d-eae0876b6002")
 	)
 	(wire
 		(pts
@@ -7447,7 +7253,7 @@
 		)
 		(uuid "f9e1d5c6-6630-48d6-849f-a5938af673cb")
 	)
-	(text "TODO:\nx Si5351: \"Unused VDDO pins should be tied to VDD\"\nx board-to-board connector for SWD can exist together with headers\nx change footprint to work with component for JST SWD\nx Does the screen work?\nx Can the board run programs for a long time?\nx Reverse engineer Si5351 dev board and compare\nx Re-order vias for north connector\nx Less bright LED? -> doubled resistance\nx crystal lines not under crystal but around\nx decoupling cap on VDDO\nx pullups necessary on the i2c line to si5351\nx might have to select other voltage regulator\nx test power ring setup on v0.1 hardware\nx Check if the holes for bolts are big enough\ntest if bottom left 3v3 island works on v0.1\nnew connector for power?\nx consider cheaper connector -> JST SH 6P\ntry order 10?\nfix SWD placement\nfix / check capacitor placement?\nis power solution safe..?"
+	(text "TODO:\nx Si5351: \"Unused VDDO pins should be tied to VDD\"\nx board-to-board connector for SWD can exist together with headers\nx change footprint to work with component for JST SWD\nx Does the screen work?\nx Can the board run programs for a long time?\nx Reverse engineer Si5351 dev board and compare\nx Re-order vias for north connector\nx Less bright LED? -> doubled resistance\nx crystal lines not under crystal but around\nx decoupling cap on VDDO\nx pullups necessary on the i2c line to si5351\nx might have to select other voltage regulator\nx test power ring setup on v0.1 hardware\nx Check if the holes for bolts are big enough\ntest if bottom left 3v3 island works on v0.1\nnew connector for power?\nx consider cheaper connector -> JST SH 6P\nx try order 10? -> ~20 euros more expensive"
 		(exclude_from_sim no)
 		(at 106.934 17.272 0)
 		(effects
@@ -11555,7 +11361,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 39.37 64.77 0)
+		(at 38.1 62.23 180)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -11563,7 +11369,7 @@
 		(dnp no)
 		(uuid "04690ec6-e3b3-4a83-a71a-b03388fe0e64")
 		(property "Reference" "#PWR021"
-			(at 39.37 71.12 0)
+			(at 38.1 55.88 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -11572,7 +11378,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 35.56 66.04 0)
+			(at 41.91 60.96 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -11580,7 +11386,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 39.37 64.77 0)
+			(at 38.1 62.23 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -11589,7 +11395,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 39.37 64.77 0)
+			(at 38.1 62.23 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -11598,7 +11404,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 39.37 64.77 0)
+			(at 38.1 62.23 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -11644,7 +11450,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Connector_JST:JST_PH_B2B-PH-SM4-TB_1x02-1MP_P2.00mm_Vertical"
+		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical"
 			(at 30.48 62.23 0)
 			(effects
 				(font
@@ -12440,76 +12246,6 @@
 		)
 	)
 	(symbol
-		(lib_id "Connector:Conn_01x02_Socket")
-		(at 46.99 62.23 0)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "5f17f0d6-32a3-484b-a88c-d291a874b3dc")
-		(property "Reference" "J2"
-			(at 48.26 62.2299 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "POWER"
-			(at 48.26 64.7699 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" "Connector_JST:JST_PH_B2B-PH-SM4-TB_1x02-1MP_P2.00mm_Vertical"
-			(at 46.99 62.23 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" "~"
-			(at 46.99 62.23 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "Generic connector, single row, 01x02, script generated"
-			(at 46.99 62.23 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "2"
-			(uuid "d57db19b-ab5a-46c9-b934-e9719972ec9b")
-		)
-		(pin "1"
-			(uuid "e52b2496-9d6b-44a4-b9dc-e7d1eefc1231")
-		)
-		(instances
-			(project ""
-				(path "/8c0b3d8b-46d3-4173-ab1e-a61765f77d61"
-					(reference "J2")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "BM23FR0.6-6DS-0.35V_51_:BM23FR0.6-6DS-0.35V_51_")
 		(at 379.73 82.55 0)
 		(unit 1)
@@ -13209,7 +12945,7 @@
 	)
 	(symbol
 		(lib_id "power:VBUS")
-		(at 38.1 62.23 0)
+		(at 39.37 64.77 180)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -13217,7 +12953,7 @@
 		(dnp no)
 		(uuid "a695c537-94d6-4b41-8f26-e3512b6b2c8c")
 		(property "Reference" "#PWR022"
-			(at 38.1 66.04 0)
+			(at 39.37 60.96 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -13226,7 +12962,7 @@
 			)
 		)
 		(property "Value" "VBUS"
-			(at 38.481 57.8358 0)
+			(at 38.989 69.1642 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -13234,7 +12970,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 38.1 62.23 0)
+			(at 39.37 64.77 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -13243,7 +12979,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 38.1 62.23 0)
+			(at 39.37 64.77 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -13252,7 +12988,7 @@
 			)
 		)
 		(property "Description" ""
-			(at 38.1 62.23 0)
+			(at 39.37 64.77 0)
 			(effects
 				(font
 					(size 1.27 1.27)
