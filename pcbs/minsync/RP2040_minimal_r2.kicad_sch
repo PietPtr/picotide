@@ -7253,7 +7253,7 @@
 		)
 		(uuid "f9e1d5c6-6630-48d6-849f-a5938af673cb")
 	)
-	(text "TODO:\nx Si5351: \"Unused VDDO pins should be tied to VDD\"\nx board-to-board connector for SWD can exist together with headers\nx change footprint to work with component for JST SWD\nx Does the screen work?\nx Can the board run programs for a long time?\nx Reverse engineer Si5351 dev board and compare\nx Re-order vias for north connector\nx Less bright LED? -> doubled resistance\nx crystal lines not under crystal but around\nx decoupling cap on VDDO\nx pullups necessary on the i2c line to si5351\nx might have to select other voltage regulator\nx test power ring setup on v0.1 hardware\nx Check if the holes for bolts are big enough\ntest if bottom left 3v3 island works on v0.1\nnew connector for power?\nx consider cheaper connector -> JST SH 6P\nx try order 10? -> ~20 euros more expensive"
+	(text "TODO:\nx Si5351: \"Unused VDDO pins should be tied to VDD\"\nx board-to-board connector for SWD can exist together with headers\nx change footprint to work with component for JST SWD\nx Does the screen work?\nx Can the board run programs for a long time?\nx Reverse engineer Si5351 dev board and compare\nx Re-order vias for north connector\nx Less bright LED? -> doubled resistance\nx crystal lines not under crystal but around\nx decoupling cap on VDDO\nx pullups necessary on the i2c line to si5351\nx might have to select other voltage regulator\nx test power ring setup on v0.1 hardware\nx Check if the holes for bolts are big enough\nx test if bottom left 3v3 island works on v0.1\nx new connector for power?\nx consider cheaper connector -> JST SH 6P\nx try order 10? -> ~20 euros more expensive"
 		(exclude_from_sim no)
 		(at 106.934 17.272 0)
 		(effects
@@ -7266,7 +7266,6 @@
 	)
 	(label "SI_CLK2"
 		(at 88.9 275.59 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7277,7 +7276,6 @@
 	)
 	(label "GPIO24"
 		(at 367.03 109.22 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7288,7 +7286,6 @@
 	)
 	(label "GPIO3"
 		(at 367.03 31.75 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7299,7 +7296,6 @@
 	)
 	(label "QSPI_SS"
 		(at 71.12 125.73 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7310,7 +7306,6 @@
 	)
 	(label "QSPI_SD3"
 		(at 71.12 138.43 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7321,7 +7316,6 @@
 	)
 	(label "GPIO7"
 		(at 367.03 59.69 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7332,7 +7326,6 @@
 	)
 	(label "QSPI_SD2"
 		(at 152.4 121.92 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7343,7 +7336,6 @@
 	)
 	(label "GPIO4"
 		(at 245.11 121.92 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7354,7 +7346,6 @@
 	)
 	(label "GPIO21"
 		(at 392.43 80.01 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7365,7 +7356,6 @@
 	)
 	(label "RUN"
 		(at 152.4 165.1 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7376,7 +7366,6 @@
 	)
 	(label "OLED_SCL"
 		(at 307.34 166.37 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7387,7 +7376,6 @@
 	)
 	(label "GPIO10"
 		(at 392.43 54.61 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7398,7 +7386,6 @@
 	)
 	(label "GPIO29_ADC3"
 		(at 245.11 187.96 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7409,7 +7396,6 @@
 	)
 	(label "QSPI_SD1"
 		(at 152.4 119.38 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7420,7 +7406,6 @@
 	)
 	(label "GPIO13"
 		(at 245.11 144.78 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7431,7 +7416,6 @@
 	)
 	(label "SI_CLK1"
 		(at 146.05 226.06 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7441,19 +7425,17 @@
 		(uuid "3796d1ba-37e8-4f43-b117-af307ddbd118")
 	)
 	(label "XA"
-		(at 46.99 227.33 180)
-		(fields_autoplaced yes)
+		(at 54.61 227.33 0)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
-			(justify right bottom)
+			(justify left bottom)
 		)
 		(uuid "3da28fb1-4745-4405-ae3b-e4702049badd")
 	)
 	(label "GPIO6"
 		(at 245.11 127 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7464,7 +7446,6 @@
 	)
 	(label "SWD"
 		(at 152.4 179.07 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7475,7 +7456,6 @@
 	)
 	(label "GPIO20"
 		(at 245.11 162.56 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7486,7 +7466,6 @@
 	)
 	(label "QSPI_SD1"
 		(at 71.12 133.35 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7496,19 +7475,17 @@
 		(uuid "48387d69-4ed1-40f1-bd4c-b9b59919d678")
 	)
 	(label "XB"
-		(at 54.61 227.33 0)
-		(fields_autoplaced yes)
+		(at 46.99 227.33 180)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
-			(justify left bottom)
+			(justify right bottom)
 		)
 		(uuid "4984d9e6-8075-47a2-abd2-c4dbf2bd3076")
 	)
 	(label "QSPI_SD3"
 		(at 152.4 124.46 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7519,7 +7496,6 @@
 	)
 	(label "GPIO6"
 		(at 392.43 59.69 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7530,7 +7506,6 @@
 	)
 	(label "SWD"
 		(at 313.69 39.37 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7541,7 +7516,6 @@
 	)
 	(label "RUN"
 		(at 342.9 139.7 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7552,7 +7526,6 @@
 	)
 	(label "GPIO18"
 		(at 245.11 157.48 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7563,7 +7536,6 @@
 	)
 	(label "GPIO25"
 		(at 245.11 175.26 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7574,7 +7546,6 @@
 	)
 	(label "GPIO2"
 		(at 392.43 31.75 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7585,7 +7556,6 @@
 	)
 	(label "GPIO1"
 		(at 367.03 34.29 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7596,7 +7566,6 @@
 	)
 	(label "GPIO0"
 		(at 245.11 111.76 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7607,7 +7576,6 @@
 	)
 	(label "GPIO8"
 		(at 392.43 57.15 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7618,7 +7586,6 @@
 	)
 	(label "GPIO11"
 		(at 367.03 54.61 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7629,7 +7596,6 @@
 	)
 	(label "SI_CLK0"
 		(at 100.33 229.87 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7640,7 +7606,6 @@
 	)
 	(label "XB"
 		(at 74.93 232.41 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7651,7 +7616,6 @@
 	)
 	(label "GPIO21"
 		(at 245.11 165.1 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7662,7 +7626,6 @@
 	)
 	(label "GPIO11"
 		(at 245.11 139.7 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7673,7 +7636,6 @@
 	)
 	(label "GPIO17"
 		(at 367.03 85.09 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7684,7 +7646,6 @@
 	)
 	(label "GPIO27_ADC1"
 		(at 245.11 182.88 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7695,7 +7656,6 @@
 	)
 	(label "GPIO1"
 		(at 245.11 114.3 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7706,7 +7666,6 @@
 	)
 	(label "GPIO4"
 		(at 392.43 29.21 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7717,7 +7676,6 @@
 	)
 	(label "GPIO14"
 		(at 245.11 147.32 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7728,7 +7686,6 @@
 	)
 	(label "GPIO3"
 		(at 245.11 119.38 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7739,7 +7696,6 @@
 	)
 	(label "GPIO14"
 		(at 60.96 242.57 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7750,7 +7706,6 @@
 	)
 	(label "GPIO10"
 		(at 245.11 137.16 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7761,7 +7716,6 @@
 	)
 	(label "SWD"
 		(at 313.69 50.8 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7772,7 +7726,6 @@
 	)
 	(label "GPIO23"
 		(at 245.11 170.18 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7783,7 +7736,6 @@
 	)
 	(label "SWCLK"
 		(at 152.4 176.53 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7794,7 +7746,6 @@
 	)
 	(label "SI_CLK0"
 		(at 166.37 147.32 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7805,7 +7756,6 @@
 	)
 	(label "GPIO9"
 		(at 367.03 57.15 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7816,7 +7766,6 @@
 	)
 	(label "QSPI_SCLK"
 		(at 152.4 128.27 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7827,7 +7776,6 @@
 	)
 	(label "SI_CLK1"
 		(at 100.33 234.95 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7838,7 +7786,6 @@
 	)
 	(label "XA"
 		(at 74.93 227.33 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7849,7 +7796,6 @@
 	)
 	(label "GPIO27_ADC1"
 		(at 367.03 106.68 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7860,7 +7806,6 @@
 	)
 	(label "GPIO25"
 		(at 88.9 265.43 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7871,7 +7816,6 @@
 	)
 	(label "GPIO12"
 		(at 328.93 163.83 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7882,7 +7826,6 @@
 	)
 	(label "QSPI_SD0"
 		(at 152.4 116.84 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7893,7 +7836,6 @@
 	)
 	(label "GPIO5"
 		(at 367.03 29.21 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7904,7 +7846,6 @@
 	)
 	(label "GPIO17"
 		(at 245.11 154.94 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7915,7 +7856,6 @@
 	)
 	(label "GPIO18"
 		(at 392.43 82.55 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7926,7 +7866,6 @@
 	)
 	(label "GPIO2"
 		(at 245.11 116.84 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7937,7 +7876,6 @@
 	)
 	(label "GPIO9"
 		(at 245.11 134.62 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7948,7 +7886,6 @@
 	)
 	(label "GPIO15"
 		(at 245.11 149.86 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7959,7 +7896,6 @@
 	)
 	(label "GPIO12"
 		(at 245.11 142.24 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7970,7 +7906,6 @@
 	)
 	(label "GPIO24"
 		(at 245.11 172.72 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7981,7 +7916,6 @@
 	)
 	(label "GPIO5"
 		(at 245.11 124.46 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -7992,7 +7926,6 @@
 	)
 	(label "GPIO22"
 		(at 245.11 167.64 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8003,7 +7936,6 @@
 	)
 	(label "SWCLK"
 		(at 313.69 34.29 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8014,7 +7946,6 @@
 	)
 	(label "GPIO19"
 		(at 245.11 160.02 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8025,7 +7956,6 @@
 	)
 	(label "QSPI_SS"
 		(at 152.4 113.03 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8036,7 +7966,6 @@
 	)
 	(label "GPIO28_ADC2"
 		(at 392.43 104.14 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8047,7 +7976,6 @@
 	)
 	(label "QSPI_SD2"
 		(at 71.12 135.89 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8058,7 +7986,6 @@
 	)
 	(label "QSPI_SD0"
 		(at 71.12 130.81 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8069,7 +7996,6 @@
 	)
 	(label "QSPI_SCLK"
 		(at 71.12 128.27 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8080,7 +8006,6 @@
 	)
 	(label "OLED_SDA"
 		(at 307.34 163.83 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8091,7 +8016,6 @@
 	)
 	(label "~{USB_BOOT}"
 		(at 31.75 125.73 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8102,7 +8026,6 @@
 	)
 	(label "GPIO15"
 		(at 60.96 240.03 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8113,7 +8036,6 @@
 	)
 	(label "GPIO20"
 		(at 176.53 226.06 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8124,7 +8046,6 @@
 	)
 	(label "GPIO26_ADC0"
 		(at 245.11 180.34 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8135,7 +8056,6 @@
 	)
 	(label "GPIO28_ADC2"
 		(at 245.11 185.42 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8146,7 +8066,6 @@
 	)
 	(label "GPIO16"
 		(at 245.11 152.4 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8157,7 +8076,6 @@
 	)
 	(label "GPIO8"
 		(at 245.11 132.08 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8168,7 +8086,6 @@
 	)
 	(label "SI_CLK2"
 		(at 100.33 240.03 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8179,7 +8096,6 @@
 	)
 	(label "GPIO23"
 		(at 392.43 109.22 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8190,7 +8106,6 @@
 	)
 	(label "SWCLK"
 		(at 313.69 55.88 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8201,7 +8116,6 @@
 	)
 	(label "GPIO22"
 		(at 367.03 80.01 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8212,7 +8126,6 @@
 	)
 	(label "GPIO16"
 		(at 392.43 85.09 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8223,7 +8136,6 @@
 	)
 	(label "GPIO26_ADC0"
 		(at 392.43 106.68 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8234,7 +8146,6 @@
 	)
 	(label "GPIO13"
 		(at 328.93 166.37 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8245,7 +8156,6 @@
 	)
 	(label "GPIO19"
 		(at 367.03 82.55 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8256,7 +8166,6 @@
 	)
 	(label "GPIO7"
 		(at 245.11 129.54 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8267,7 +8176,6 @@
 	)
 	(label "GPIO29_ADC3"
 		(at 367.03 104.14 180)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -8278,7 +8186,6 @@
 	)
 	(label "GPIO0"
 		(at 392.43 34.29 0)
-		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -12194,7 +12101,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "4.7k"
+		(property "Value" "2.2k"
 			(at 74.168 251.333 0)
 			(effects
 				(font
@@ -13305,7 +13212,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
+		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
 			(at 77.47 216.8652 0)
 			(effects
 				(font
@@ -13953,7 +13860,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "4.7k"
+		(property "Value" "2.2k"
 			(at 66.548 251.333 0)
 			(effects
 				(font
@@ -14311,7 +14218,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:C_0402_1005Metric"
+		(property "Footprint" "Capacitor_SMD:C_0603_1608Metric"
 			(at 97.79 214.9348 0)
 			(effects
 				(font
