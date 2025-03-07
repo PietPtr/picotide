@@ -1,6 +1,6 @@
 [package]
 name = "minsync"
-version = "0.9.0"
+version = "0.1.0"
 edition = "2018"
 description = "Board Support Package for the minsync PCB"
 

@@ -223,17 +223,20 @@ fn main() -> ! {
 static GLOBAL_CONTROL: Mutex<RefCell<Option<bittide_impls::boards::rpi_pico::Control>>> =
     Mutex::new(RefCell::new(None));
 
+/// Triggered every `CLOCKS_PER_SYNC_WORD` cycles. Tries to borrow the GLOBAL_CONTROL object which contains
+/// the BittideController. Since this is the only routine that borrows it, if the borrow fails that means
+/// that the exception triggered before the control algorithm finished, so the control algorithm is too slow.
 #[exception]
 fn SysTick() {
-    static mut CONTROL: Option<bittide_impls::boards::rpi_pico::Control> = None;
+    critical_section::with(|cs| {
+        let mut refcell = GLOBAL_CONTROL
+            .borrow(cs)
+            .try_borrow_mut()
+            .expect("Control algorithm cannot keep up, already borrowed");
+        let mut control = refcell.take().expect("control not initialized.");
 
-    if CONTROL.is_none() {
-        critical_section::with(|cs| {
-            let _ = CONTROL.insert(GLOBAL_CONTROL.borrow(cs).take().unwrap());
-        });
-    }
-
-    if let Some(control) = CONTROL {
         control.interrupt();
-    }
+
+        *refcell = Some(control);
+    });
 }
