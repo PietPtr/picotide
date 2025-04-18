@@ -1,6 +1,6 @@
 use embedded_hal::blocking::i2c;
 use fixed::types::I16F16;
-use rp_pico::hal::{i2c as _, I2C};
+use rp_pico::hal::I2C;
 use rp_pico::pac::{self, I2C1};
 use si5351::{Si5351, Si5351Device, PLL};
 
