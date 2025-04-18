@@ -50,8 +50,17 @@ workspace = false
 extend = "build_and_flash_installation"
 env = { "SWDIO_PINS" = "3,4,5", "CRATE" = "pico_on_breadboard" }
 
+[tasks.build_flash_test]
+extend = "build"
+env = { "CRATE" = "flash_test", "DIR" = "experimental" }
 
-# TODO: still necessary?
+[tasks.flash_test]
+dependencies = ["build_flash_test"]
+run_task = "flash"
+env = { "SWDIO_PINS" = "3,4,5", "BINARY_NAME" = "flash_test" }
+workspace = false
+
+# Pico on breadboard installation
 [tasks.build_pico_on_breadboard]
 extend = "build"
 env = { "CRATE" = "pico_on_breadboard", "DIR" = "installations" }
@@ -62,12 +71,13 @@ run_task = "flash"
 env = { "SWDIO_PINS" = "3,4,5", "BINARY_NAME" = "pico_on_breadboard" }
 workspace = false
 
-[tasks.build_flash_test]
+# double minsync installation
+[tasks.build_double_minsync]
 extend = "build"
-env = { "CRATE" = "flash_test", "DIR" = "experimental" }
+env = { "CRATE" = "double_minsync", "DIR" = "installations" }
 
-[tasks.flash_test]
-dependencies = ["build_flash_test"]
-run_task = "flash"
-env = { "SWDIO_PINS" = "3,4,5", "BINARY_NAME" = "flash_test" }
+[tasks.double_minsync]
+dependencies = ["build_double_minsync"]
+run_task = "build_and_flash_installation"
+env = { "SWDIO_PINS" = "3,4", "BINARY_NAME" = "double_minsync" }
 workspace = false

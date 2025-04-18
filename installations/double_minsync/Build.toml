@@ -1,0 +1,9 @@
+num_binaries = 2
+
+[constants.integral]
+NODE_ID = [0, 1]
+BUFFER_SIZE = [64, 64]
+SI_FRAC = [100, 200]
+
+[constants.string]
+NAME = ["north", "south"]

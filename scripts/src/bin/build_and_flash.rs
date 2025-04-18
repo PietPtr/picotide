@@ -12,7 +12,15 @@ struct Arguments {
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Arguments::parse();
 
+    let path = Path::new("target")
+        .join("thumbv6m-none-eabi")
+        .join("release")
+        .join(&args.binary_name);
+
     for (binary_index, &pin) in args.pins.iter().enumerate() {
+        // Delete old binary first
+        // std::fs::remove_file(&path).ok();
+
         env::set_var("BINARY_INDEX", format!("{}", binary_index));
 
         println!(
@@ -22,6 +30,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let mut process = Command::new("cargo")
             .arg("build")
+            .arg("--release")
             .arg("-p")
             .arg(&args.binary_name)
             .arg("--config")
@@ -33,11 +42,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             .unwrap();
 
         process.wait().unwrap();
-
-        let path = Path::new("target")
-            .join("thumbv6m-none-eabi")
-            .join("release")
-            .join(&args.binary_name);
 
         scripts::flash::flash_with_retries(pin, &path)?;
     }

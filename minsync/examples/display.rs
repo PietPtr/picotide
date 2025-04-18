@@ -9,13 +9,14 @@ pub static BOOT2_FIRMWARE: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
 #[allow(unused_imports)]
 use defmt::{error, info, warn};
 use defmt_rtt as _;
-use embedded_graphics::mono_font::ascii::FONT_6X13;
-use embedded_graphics::mono_font::{MonoTextStyle, MonoTextStyleBuilder};
-use embedded_graphics::pixelcolor::BinaryColor;
-use embedded_graphics::prelude::{Dimensions, DrawTarget, Point};
-use embedded_graphics::primitives::{PrimitiveStyle, PrimitiveStyleBuilder, StyledDrawable};
-use embedded_graphics::text::{Baseline, Text};
-use embedded_graphics::Drawable;
+use embedded_graphics::{
+    mono_font::{ascii::FONT_6X13, MonoTextStyle, MonoTextStyleBuilder},
+    pixelcolor::BinaryColor,
+    prelude::{Dimensions, DrawTarget, Point},
+    primitives::{PrimitiveStyle, PrimitiveStyleBuilder, StyledDrawable},
+    text::{Baseline, Text},
+    Drawable,
+};
 use fugit::{HertzU32, RateExtU32};
 use panic_probe as _;
 use si5351::{Si5351, Si5351Device};

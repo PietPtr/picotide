@@ -65,7 +65,7 @@ const PLL_FRAC_MIN: I16F16 = I16F16::from_bits(0x00000);
 impl<SDA, SCL, const B: usize> FrequencyController<B> for Si5351Controller<I2C<I2C1, (SDA, SCL)>> {
     fn run(&mut self, buffer_levels: &[usize]) {
         //TODO: remove some common code between controllers
-        assert!(buffer_levels.len() >= self.degree); // TODO: return Err?
+        assert!(buffer_levels.len() >= self.degree); // TODO: return Err? type level thing?
         let half_full = (self.degree * B) / 2;
         let total_level: usize = buffer_levels.iter().sum();
 
