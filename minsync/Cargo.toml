@@ -8,11 +8,13 @@ description = "Board Support Package for the minsync PCB"
 cortex-m-rt = { version = "0.7.3", optional = true }
 embedded-graphics = "0.8.1"
 fugit = "0.3.7"
+log = "0.4.27"
 rp2040-boot2 = { version = "0.2.1", optional = true }
 rp2040-hal = { git = "https://github.com/rp-rs/rp-hal", rev = "2deb017b7aa5dad3f644614bec2f3710bdb7b9f3", package = "rp2040-hal", features = [
     "defmt",
 ] }
 sh1106 = "0.5.0"
+si5351 = "0.2.0"
 ssd1306 = "0.10.0"
 usb-device = "0.3.1"
 

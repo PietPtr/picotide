@@ -1,10 +1,10 @@
 #![no_std]
 #![no_main]
 
-#[link_section = ".boot2"]
-#[no_mangle]
-#[used]
-pub static BOOT2_FIRMWARE: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
+// #[link_section = ".boot2"]
+// #[no_mangle]
+// #[used]
+// pub static BOOT2_FIRMWARE: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
 
 use cortex_m::asm;
 #[allow(unused_imports)]
@@ -14,10 +14,7 @@ use embedded_graphics::mono_font::ascii::FONT_6X9;
 use embedded_graphics::prelude::DrawTarget;
 use embedded_graphics::primitives::{PrimitiveStyle, StyledDrawable};
 use embedded_graphics::{
-    mono_font::{
-        ascii::{FONT_6X10, FONT_6X13},
-        MonoTextStyleBuilder,
-    },
+    mono_font::MonoTextStyleBuilder,
     pixelcolor::BinaryColor,
     prelude::{Dimensions, Point, Size},
     primitives::Rectangle,
@@ -27,22 +24,16 @@ use embedded_graphics::{
 use embedded_hal::digital::v2::OutputPin;
 use fugit::{HertzU32, RateExtU32};
 use heapless::String;
-use minsync::hal::pll::setup_pll_blocking;
+use minsync::si_i2c;
 use panic_probe as _;
-use si5351::{Si5351, Si5351Device};
+use si5351::Si5351;
 use ssd1306::{prelude::*, I2CDisplayInterface, Ssd1306};
 
+use minsync::hal;
+use minsync::hal::pac;
 use minsync::{
     entry,
-    hal::{
-        self,
-        clocks::{ClockSource, ClocksManager},
-        gpio::{bank0::Gpio25, FunctionClock, Pin, PullNone},
-        pac,
-        pll::PLLConfig,
-        rosc::RingOscillator,
-        Clock, Watchdog, I2C,
-    },
+    hal::{pll::PLLConfig, Watchdog, I2C},
 };
 
 mod generated_constants;
@@ -68,26 +59,6 @@ fn main() -> ! {
     let watchdog = Watchdog::new(pac.WATCHDOG);
     watchdog.disable();
 
-    pac.CLOCKS.clk_gpout3_div().write(|w| {
-        w.frac().variant(0);
-        w.int().variant(50000)
-    });
-
-    pac.CLOCKS.clk_gpout3_ctrl().write(|w| {
-        w.auxsrc().clksrc_pll_sys();
-        // w.auxsrc().clk_sys();
-        w.enable().set_bit()
-    });
-
-    let mut clocks = ClocksManager::new(pac.CLOCKS);
-    let rosc = RingOscillator::new(pac.ROSC);
-    let rosc = rosc.initialize();
-
-    clocks
-        .system_clock
-        .configure_clock(&rosc, rosc.get_freq())
-        .unwrap();
-
     let pins = minsync::Pins::new(
         pac.IO_BANK0,
         pac.PADS_BANK0,
@@ -95,7 +66,8 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    let _: Pin<Gpio25, FunctionClock, PullNone> = pins.gpout3.reconfigure();
+    let mut clocks = minsync::clocks::minimal_clock_setup(pac.CLOCKS, pac.ROSC, pins.gpout3)
+        .expect("Failed to do minimal clock setup.");
 
     let i2c_display = I2C::i2c0(
         pac.I2C0,
@@ -132,86 +104,30 @@ fn main() -> ! {
 
     let mut led = pins.led_or_si_clk1.into_push_pull_output();
 
-    let mut tellertje = 0;
-
-    // ------------- clocking code ---------------
-
-    let si_frequency: fugit::Rate<u32, 1, 1> = 12.MHz();
-
-    // TODO: should also move to something common for minsync, reuse that in examples too
-    let i2c = I2C::i2c1(
-        pac.I2C1,
-        pins.si_sda.reconfigure(),
-        pins.si_scl.reconfigure(),
-        1.kHz(), // TODO: this is fickle, and its not very clear when si doesn't update
-        &mut pac.RESETS,
-        &clocks.system_clock,
-    );
-
-    let mut si_clock = Si5351Device::new(i2c, false, minsync::SI5351_CRYSTAL_FREQ);
-
-    let status = si_clock.read_device_status().unwrap().bits();
-
-    info!("Created SI device. {:?}", status);
-
-    si_clock
-        .init(si5351::CrystalLoad::_8)
-        .expect("Failed to init SI5351");
-
-    si_clock
-        .set_frequency(
-            si5351::PLL::A,
-            si5351::ClockOutput::Clk2,
-            si_frequency.to_Hz(),
-        )
-        .expect("Cannot set frequency");
-
-    si_clock
-        .set_frequency(
-            si5351::PLL::A,
-            si5351::ClockOutput::Clk0,
-            si_frequency.to_Hz(),
-        )
-        .expect("Cannot set frequency");
-
-    info!("Configured SI.");
-
-    pac.XOSC.ctrl().write(|w| w.enable().disable());
-
-    let locked_pll_sys = setup_pll_blocking(
-        pac.PLL_SYS,
-        si_frequency,
-        SYS_PLL_CONFIG_100MHZ,
-        &mut clocks,
-        &mut pac.RESETS,
-    )
-    .expect("Couldn't lock PLL");
-
-    info!(
-        "PLL should be locked to the SI now ({}MHz)",
-        locked_pll_sys.get_freq().to_MHz()
-    );
-
-    clocks
-        .system_clock
-        .configure_clock(&locked_pll_sys, locked_pll_sys.get_freq())
-        .expect("Couldn't set system clock to PLL.");
-
-    pac.XOSC.ctrl().write(|w| w.enable().disable());
-
-    info!("System clock now on SI clock.");
-
-    // -------------
+    let mut si_clock = minsync::clocks::setup_si_as_crystal(si_i2c!(pac, pins, clocks, 1.kHz()))
+        .expect("Failed to setup Si5351");
+    minsync::clocks::setup_pll_and_sysclk(&mut clocks, pac.PLL_SYS, &mut pac.XOSC, &mut pac.RESETS);
 
     loop {
-        for frac in (0..generated_constants::SI_FRAC).chain((0..generated_constants::SI_FRAC).rev())
+        for frac in (-generated_constants::SI_FRAC..generated_constants::SI_FRAC)
+            .chain((-generated_constants::SI_FRAC..generated_constants::SI_FRAC).rev())
         {
-            for _ in 0..10_000 {
+            for _ in 0..5_000_000 {
                 asm::nop();
             }
 
+            led.set_high().unwrap();
+
+            for _ in 0..1000 {
+                asm::nop();
+            }
+
+            led.set_low().unwrap();
+
+            let frac = (0x3ffff + frac) as u32;
+
             si_clock
-                .setup_pll(si5351::PLL::A, 35, (frac as u32) * 10, 0xfffff)
+                .setup_pll(si5351::PLL::A, 35, frac, 0xfffff)
                 .expect("Cannot setup PLL");
 
             Rectangle::new(Point::new(0, 18), Size::new(128, 32))
@@ -223,33 +139,6 @@ fn main() -> ! {
             draw_key_value(&mut display, 2, "frac", tellertje_str).unwrap();
             display.flush().unwrap();
         }
-    }
-
-    #[allow(clippy::empty_loop)]
-    loop {
-        for _ in 0..1_000_000 {
-            asm::nop();
-        }
-
-        led.set_high().unwrap();
-
-        for _ in 0..10_000 {
-            asm::nop();
-        }
-
-        led.set_low().unwrap();
-
-        Rectangle::new(Point::new(0, 18), Size::new(128, 32))
-            .draw_styled(&PrimitiveStyle::with_fill(BinaryColor::Off), &mut display)
-            .unwrap();
-
-        let mut buffer = itoa::Buffer::new();
-        let tellertje_str = buffer.format(tellertje);
-        draw_key_value(&mut display, 2, "tellertje", tellertje_str).unwrap();
-
-        display.flush().unwrap();
-
-        tellertje += 1;
     }
 }
 

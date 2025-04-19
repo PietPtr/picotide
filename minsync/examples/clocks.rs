@@ -1,10 +1,8 @@
+//! Sets up the Si5351 as clock source for the PLL, sets up the PLL, and then runs the
+//! RP2040 of that PLL and continuously changes between two clock frequencies while still running.
+
 #![no_std]
 #![no_main]
-
-#[link_section = ".boot2"]
-#[no_mangle]
-#[used]
-pub static BOOT2_FIRMWARE: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
 
 use cortex_m::asm;
 #[allow(unused_imports)]
@@ -13,20 +11,12 @@ use defmt_rtt as _;
 use embedded_hal::digital::v2::OutputPin;
 use fugit::{HertzU32, RateExtU32};
 use panic_probe as _;
-use rp2040_hal::gpio::{bank0::Gpio25, FunctionClock, Pin, PullNone};
-use rp2040_hal::Watchdog;
-use si5351::{Si5351, Si5351Device};
+use si5351::Si5351;
 
+use minsync::hal::{self, pac};
 use minsync::{
     entry,
-    hal::{
-        self,
-        clocks::{ClockSource, ClocksManager},
-        pac,
-        pll::{setup_pll_blocking, PLLConfig},
-        rosc::RingOscillator,
-        Clock, I2C,
-    },
+    hal::{pll::PLLConfig, Watchdog},
 };
 
 pub const SYS_PLL_CONFIG_100MHZ: PLLConfig = PLLConfig {
@@ -45,26 +35,6 @@ fn main() -> ! {
     let watchdog = Watchdog::new(pac.WATCHDOG);
     watchdog.disable();
 
-    pac.CLOCKS.clk_gpout3_div().write(|w| {
-        w.frac().variant(0);
-        w.int().variant(1000)
-    });
-
-    pac.CLOCKS.clk_gpout3_ctrl().write(|w| {
-        // w.auxsrc().clksrc_pll_sys();
-        w.auxsrc().clk_sys();
-        w.enable().set_bit()
-    });
-
-    let mut clocks = ClocksManager::new(pac.CLOCKS);
-    let rosc = RingOscillator::new(pac.ROSC);
-    let rosc = rosc.initialize();
-
-    clocks
-        .system_clock
-        .configure_clock(&rosc, rosc.get_freq())
-        .unwrap();
-
     let pins = minsync::Pins::new(
         pac.IO_BANK0,
         pac.PADS_BANK0,
@@ -72,70 +42,19 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    let _: Pin<Gpio25, FunctionClock, PullNone> = pins.gpout3.reconfigure();
+    let mut clocks = minsync::clocks::minimal_clock_setup(pac.CLOCKS, pac.ROSC, pins.gpout3)
+        .expect("Failed to do basic clock setup.");
 
-    let si_frequency: fugit::Rate<u32, 1, 1> = 12.MHz();
+    let mut si_clock =
+        minsync::clocks::setup_si_as_crystal(minsync::si_i2c!(pac, pins, clocks, 1.kHz()))
+            .expect("Failed to setup Si5351");
 
-    let i2c = I2C::i2c1(
-        pac.I2C1,
-        pins.si_sda.reconfigure(),
-        pins.si_scl.reconfigure(),
-        100.kHz(),
-        &mut pac.RESETS,
-        &clocks.system_clock,
-    );
-
-    let mut si_clock = Si5351Device::new(i2c, false, minsync::SI5351_CRYSTAL_FREQ);
-
-    let status = si_clock.read_device_status().unwrap().bits();
-
-    info!("Created SI device. {:?}", status);
-
+    // Test the clk2 debug endpoint
     si_clock
-        .init(si5351::CrystalLoad::_8)
-        .expect("Failed to init SI5351");
-
-    si_clock
-        .set_frequency(
-            si5351::PLL::A,
-            si5351::ClockOutput::Clk2,
-            si_frequency.to_Hz(),
-        )
+        .set_frequency(si5351::PLL::A, si5351::ClockOutput::Clk2, 10_000_000u32)
         .expect("Cannot set frequency");
 
-    si_clock
-        .set_frequency(
-            si5351::PLL::A,
-            si5351::ClockOutput::Clk0,
-            si_frequency.to_Hz(),
-        )
-        .expect("Cannot set frequency");
-
-    info!("Configured SI.");
-
-    // Disable the XOSC circuit since we're passing in a stable CMOS clock from the Si5351
-    pac.XOSC.ctrl().write(|w| w.enable().disable());
-
-    let locked_pll_sys = setup_pll_blocking(
-        pac.PLL_SYS,
-        si_frequency,
-        SYS_PLL_CONFIG_100MHZ,
-        &mut clocks,
-        &mut pac.RESETS,
-    )
-    .expect("Couldn't lock PLL");
-
-    info!(
-        "PLL should be locked to the SI now ({}MHz)",
-        locked_pll_sys.get_freq().to_MHz()
-    );
-
-    clocks
-        .system_clock
-        .configure_clock(&locked_pll_sys, locked_pll_sys.get_freq())
-        .expect("Couldn't set system clock to PLL.");
-
-    info!("System clock now on SI clock.");
+    minsync::clocks::setup_pll_and_sysclk(&mut clocks, pac.PLL_SYS, &mut pac.XOSC, &mut pac.RESETS);
 
     let mut led_pin = pins.led_or_si_clk1.into_push_pull_output();
 

@@ -43,15 +43,6 @@ fn main() -> ! {
     let watchdog = Watchdog::new(pac.WATCHDOG);
     watchdog.disable();
 
-    let mut clocks = ClocksManager::new(pac.CLOCKS);
-    let rosc = RingOscillator::new(pac.ROSC);
-    let rosc = rosc.initialize();
-
-    clocks
-        .system_clock
-        .configure_clock(&rosc, rosc.get_freq())
-        .unwrap();
-
     let pins = minsync::Pins::new(
         pac.IO_BANK0,
         pac.PADS_BANK0,
@@ -59,8 +50,12 @@ fn main() -> ! {
         &mut pac.RESETS,
     );
 
-    info!("Hoi!");
+    minsync::clocks::minimal_clock_setup(pac.CLOCKS, pac.ROSC, pins.gpout3)
+        .expect("Failed to do basic clock set up.");
 
+    info!("Hello!");
+
+    // Breathe the LED with the PWM.
     let mut pwm_slices = hal::pwm::Slices::new(pac.PWM, &mut pac.RESETS);
     let pwm = &mut pwm_slices.pwm2;
     pwm.set_ph_correct();

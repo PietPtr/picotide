@@ -1,5 +1,7 @@
 #![no_std]
 
+pub mod clocks;
+
 pub extern crate rp2040_hal as hal;
 
 #[cfg(feature = "rt")]
