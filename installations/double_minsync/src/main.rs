@@ -24,6 +24,7 @@ use embedded_graphics::{
 use embedded_hal::digital::v2::OutputPin;
 use fugit::{HertzU32, RateExtU32};
 use heapless::String;
+use minsync::display::{draw_key_integral, draw_key_value};
 use minsync::si_i2c;
 use panic_probe as _;
 use si5351::Si5351;
@@ -68,45 +69,19 @@ fn main() -> ! {
 
     let mut clocks = minsync::clocks::minimal_clock_setup(pac.CLOCKS, pac.ROSC, pins.gpout3)
         .expect("Failed to do minimal clock setup.");
-
-    let i2c_display = I2C::i2c0(
-        pac.I2C0,
-        pins.oled_sda.reconfigure(),
-        pins.oled_scl.reconfigure(),
-        100.kHz(),
-        &mut pac.RESETS,
-        &clocks.system_clock,
-    );
-
-    let interface = I2CDisplayInterface::new(i2c_display);
-    let mut display = Ssd1306::new(interface, DisplaySize128x32, DisplayRotation::Rotate0)
-        .into_buffered_graphics_mode();
-    display.init().unwrap();
-
-    // TODO: clear display function
-    Rectangle::new(Point::zero(), Size::new(128, 32))
-        .draw_styled(&PrimitiveStyle::with_fill(BinaryColor::Off), &mut display)
-        .unwrap();
-
-    draw_key_value(&mut display, 0, "Name", generated_constants::NAME).unwrap();
-
-    // let mut buffer = itoa::Buffer::new();
-    // let node_id_str = buffer.format(generated_constants::NODE_ID);
-    // draw_key_value(&mut display, 1, "Node ID", node_id_str).unwrap();
-
-    let mut buffer = itoa::Buffer::new();
-    let si_frac_str = buffer.format(generated_constants::SI_FRAC);
-    draw_key_value(&mut display, 1, "SI Frac", si_frac_str).unwrap();
-
-    display.flush().unwrap();
-
-    info!("Initialized display");
-
-    let mut led = pins.led_or_si_clk1.into_push_pull_output();
-
     let mut si_clock = minsync::clocks::setup_si_as_crystal(si_i2c!(pac, pins, clocks, 1.kHz()))
         .expect("Failed to setup Si5351");
     minsync::clocks::setup_pll_and_sysclk(&mut clocks, pac.PLL_SYS, &mut pac.XOSC, &mut pac.RESETS);
+
+    let mut display = minsync::display::setup(minsync::display_i2c!(pac, pins, clocks, 300.kHz()))
+        .expect("Couldn't set up display.");
+
+    draw_key_value(&mut display, 0, "Name", generated_constants::NAME).unwrap();
+    draw_key_integral(&mut display, 1, "SI frac", generated_constants::SI_FRAC).unwrap();
+
+    display.flush().unwrap();
+
+    let mut led = pins.led_or_si_clk1.into_push_pull_output();
 
     loop {
         for frac in (-generated_constants::SI_FRAC..generated_constants::SI_FRAC)
@@ -130,39 +105,10 @@ fn main() -> ! {
                 .setup_pll(si5351::PLL::A, 35, frac, 0xfffff)
                 .expect("Cannot setup PLL");
 
-            Rectangle::new(Point::new(0, 18), Size::new(128, 32))
-                .draw_styled(&PrimitiveStyle::with_fill(BinaryColor::Off), &mut display)
-                .unwrap();
-
-            let mut buffer = itoa::Buffer::new();
-            let tellertje_str = buffer.format(frac);
-            draw_key_value(&mut display, 2, "frac", tellertje_str).unwrap();
+            draw_key_integral(&mut display, 2, "frac", frac).unwrap();
             display.flush().unwrap();
         }
     }
 }
 
 // TODO: find out if drawing can be safely stalled by bittide controllers
-// TODO: need some common graphics crate for minsync with tools like this
-fn draw_key_value<D>(display: &mut D, line: i32, key: &str, value: &str) -> Result<(), D::Error>
-where
-    D: DrawTarget<Color = BinaryColor>,
-{
-    // Draw some texts
-    let text_style = MonoTextStyleBuilder::new()
-        .font(&FONT_6X9)
-        .text_color(BinaryColor::On)
-        .build();
-
-    let mut key_value: String<22> = String::new();
-
-    key_value.push_str(key).ok();
-    key_value.push_str(": ").ok();
-    key_value.push_str(value).ok();
-
-    let mut text = Text::with_baseline(&key_value, Point::zero(), text_style, Baseline::Top);
-    text.position.y = text.bounding_box().size.height as i32 * line;
-    text.draw(display)?;
-
-    Ok(())
-}

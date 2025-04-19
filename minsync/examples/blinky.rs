@@ -17,14 +17,7 @@ use rp2040_hal::Watchdog;
 
 use minsync::{
     entry,
-    hal::{
-        self,
-        clocks::{ClockSource, ClocksManager},
-        pac,
-        pll::PLLConfig,
-        rosc::RingOscillator,
-        Clock,
-    },
+    hal::{self, pac, pll::PLLConfig},
 };
 
 pub const SYS_PLL_CONFIG_100MHZ: PLLConfig = PLLConfig {
