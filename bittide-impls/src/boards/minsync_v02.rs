@@ -14,6 +14,8 @@ use rp_pico::hal::gpio::{bank0::Gpio0, DefaultTypeState};
 
 use crate::chips::{self, rp2040::Rp2040Links};
 
+pub const BUFFER_SIZE: usize = 64; // TODO: buffer size at compile time is inconvenient for fast iteration, what else can we use?
+
 pub type Control = BittideChannelControl<
     Si5351Controller<
         I2C<
@@ -24,7 +26,7 @@ pub type Control = BittideChannelControl<
             ),
         >,
     >,
-    64, // TODO: buffer size at compile time is inconvenient for fast iteration, what else can we use?
+    BUFFER_SIZE,
     Rp2040Links,
     4,
     crate::chips::rp2040::SioFifo,

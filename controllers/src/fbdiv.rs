@@ -59,6 +59,7 @@ const FBDIV_RANGE: RangeInclusive<i32> = 97..=103;
 
 impl<const B: usize> FrequencyController<B> for FbdivController {
     type Error = ();
+    type Debug = ();
 
     fn run(&mut self, buffer_levels: &[usize]) -> Result<(), Self::Error> {
         self.i += 1;
@@ -110,4 +111,6 @@ impl<const B: usize> FrequencyController<B> for FbdivController {
     fn set_degree(&mut self, new_degree: usize) {
         self.degree = new_degree
     }
+
+    fn debug(&self) -> Self::Debug {}
 }

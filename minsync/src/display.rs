@@ -50,6 +50,8 @@ pub const DEFAULT_TEXT_STYLE: MonoTextStyle<'_, BinaryColor> = MonoTextStyleBuil
     .text_color(BinaryColor::On)
     .build();
 
+pub const ON_STYLE: &PrimitiveStyle<BinaryColor> = &PrimitiveStyle::with_fill(BinaryColor::On);
+
 #[macro_export]
 macro_rules! display_i2c {
     ($pac:expr, $pins:expr, $clocks:expr, $freq:expr) => {

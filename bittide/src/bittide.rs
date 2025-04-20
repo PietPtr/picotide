@@ -15,17 +15,24 @@ use heapless::{Deque, Vec};
 //      - routing of messages
 
 /// Generic over the frequency controller F, and the buffer size B.
-pub struct BittideChannelControl<F, const B: usize, L, const DEGREE: usize, FIFO> {
+pub struct BittideChannelControl<
+    F: FrequencyController<B>,
+    const B: usize,
+    L,
+    const DEGREE: usize,
+    FIFO,
+> {
     frequency_controller: F,
     links: L,
     link_mask: [bool; DEGREE],
     sio_fifo: FIFO,
     tide_fifos: [BittideFifo<B>; DEGREE],
-    debug_info: BittideChannelControlDebugInfo,
+    debug_info: BittideChannelControlDebugInfo<F::Debug>,
 }
 
 #[derive(Debug, Default)]
-pub struct BittideChannelControlDebugInfo {
+pub struct BittideChannelControlDebugInfo<FD> {
+    pub frequency_controller_debug: FD,
     pub buffer_levels: [u32; 4],
     pub rx_sync_message_counter: u32,
     pub rx_comm_message_counter: u32,
@@ -44,13 +51,20 @@ where
         sio_fifo: FIFO,
         tide_fifos: [BittideFifo<B>; DEGREE],
     ) -> Self {
+        let frequency_controller_debug_info = frequency_controller.debug();
+
         Self {
             frequency_controller,
             links,
             link_mask,
             sio_fifo,
             tide_fifos,
-            debug_info: BittideChannelControlDebugInfo::default(),
+            debug_info: BittideChannelControlDebugInfo {
+                frequency_controller_debug: frequency_controller_debug_info,
+                buffer_levels: [0; 4],
+                rx_comm_message_counter: 0,
+                rx_sync_message_counter: 0,
+            },
         }
     }
 
@@ -110,7 +124,7 @@ where
                 }
                 fifo.fifo
                     .push_back(message)
-                    .map_err(|_| BittideChannelControlError::TideFifoFull)?;
+                    .map_err(|_| BittideChannelControlError::BittideFifoFull)?;
                 // TODO: write good error dump here with trace of last N fifo fill levels
             }
         }
@@ -140,8 +154,7 @@ where
                     }
                 }
             } else {
-                log::warn!("FIFO #{} is empty.", id);
-                // No other node is connected on this channel. No special action necessary.
+                return Err(BittideChannelControlError::BittideFifoEmpty);
             }
         }
 
@@ -162,7 +175,7 @@ where
 
         let current_degree = self.links.active_fifos().iter().filter(|&&b| b).count();
 
-        self.frequency_controller.set_degree(current_degree);
+        // self.frequency_controller.set_degree(current_degree);
         self.frequency_controller
             .run(&buffer_levels)
             .map_err(|_| BittideChannelControlError::FrequenceControllerError)?;
@@ -170,7 +183,8 @@ where
         Ok(())
     }
 
-    pub fn debug(&self) -> &BittideChannelControlDebugInfo {
+    pub fn debug(&mut self) -> &BittideChannelControlDebugInfo<F::Debug> {
+        self.debug_info.frequency_controller_debug = self.frequency_controller.debug();
         &self.debug_info
     }
 }
@@ -252,8 +266,9 @@ pub enum BittideChannelControlError {
     DecodeError,
     SyncMessageFromUserCode,
     InvalidNeigbor,
-    TideFifoFull,
+    BittideFifoFull,
     FrequenceControllerError,
+    BittideFifoEmpty,
 }
 
 impl BittideChannelControlError {
@@ -263,8 +278,9 @@ impl BittideChannelControlError {
             Err(Self::DecodeError) => 1,
             Err(Self::SyncMessageFromUserCode) => 2,
             Err(Self::InvalidNeigbor) => 3,
-            Err(Self::TideFifoFull) => 4,
-            Err(Self::FrequenceControllerError) => 5,
+            Err(Self::BittideFifoFull) => 4,
+            Err(Self::BittideFifoEmpty) => 5,
+            Err(Self::FrequenceControllerError) => 6,
         }
     }
 
@@ -273,8 +289,9 @@ impl BittideChannelControlError {
             0 => Ok(()),
             2 => Err(Self::SyncMessageFromUserCode),
             3 => Err(Self::InvalidNeigbor),
-            4 => Err(Self::TideFifoFull),
-            5 => Err(Self::FrequenceControllerError),
+            4 => Err(Self::BittideFifoFull),
+            5 => Err(Self::BittideFifoEmpty),
+            6 => Err(Self::FrequenceControllerError),
             _ => Err(Self::DecodeError),
         }
     }

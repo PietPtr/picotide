@@ -14,7 +14,7 @@ members = [
     "minsync",
     "surf/surf-proc",
     "surf/surf-lang",
-    "surf/examples/*",
+    "surf/examples/*", "debugging",
 ]
 
 [workspace.package]
