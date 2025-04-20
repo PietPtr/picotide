@@ -60,6 +60,12 @@ impl Pitopi {
         RXSM: StateMachineIndex,
         TXSM: StateMachineIndex,
     {
+        // For the PIO programs to work, the RX pins must be strictly consecutive, in the order clock, word, data.
+        // assert_eq!(rx_clk_pin.id().num + 1, rx_word_pin.id().num);
+        // assert_eq!(rx_clk_pin.id().num + 2, rx_data_pin.id().num);
+        // Also, the tx word and clk pin must be consecutive in that order (if the default TX program is used and not the mirrored)
+        // assert_eq!(tx_word_pin.id().num + 1, tx_clk_pin.id().num);
+
         let Some(rx_program) = self.rx_program.as_mut() else {
             return Err(PitopiError::RxProgramNotInstalled);
         };
@@ -72,8 +78,8 @@ impl Pitopi {
 
         rx_sm.set_pindirs([
             (rx_data_pin.id().num, PinDir::Input),
-            (rx_clk_pin.id().num, PinDir::Input),
             (rx_word_pin.id().num, PinDir::Input),
+            (rx_clk_pin.id().num, PinDir::Input),
         ]);
 
         let rx_sm = rx_sm.start();
@@ -82,11 +88,12 @@ impl Pitopi {
             return Err(PitopiError::TxProgramNotInstalled);
         };
 
+        // default
         let (mut tx_sm, _, tx_fifo) =
             PIOBuilder::from_installed_program(unsafe { tx_program.share() })
                 .out_pins(tx_data_pin.id().num, 1)
                 .side_set_pin_base(tx_clk_pin.id().num)
-                .clock_divisor_fixed_point(4, 0)
+                .clock_divisor_fixed_point(64, 0)
                 .build(tx_sm);
 
         tx_sm.set_pindirs([
@@ -94,6 +101,20 @@ impl Pitopi {
             (tx_clk_pin.id().num, PinDir::Output),
             (tx_word_pin.id().num, PinDir::Output),
         ]);
+
+        // mirror
+        // let (mut tx_sm, _, tx_fifo) =
+        //     PIOBuilder::from_installed_program(unsafe { tx_program.share() })
+        //         .out_pins(tx_data_pin.id().num, 1)
+        //         .side_set_pin_base(tx_word_pin.id().num)
+        //         .clock_divisor_fixed_point(64, 0)
+        //         .build(tx_sm);
+
+        // tx_sm.set_pindirs([
+        //     (tx_data_pin.id().num, PinDir::Output),
+        //     (tx_clk_pin.id().num, PinDir::Output),
+        //     (tx_word_pin.id().num, PinDir::Output),
+        // ]);
 
         let tx_sm = tx_sm.start();
 

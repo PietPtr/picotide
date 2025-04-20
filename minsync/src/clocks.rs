@@ -103,11 +103,11 @@ pub fn setup_si_as_crystal(i2c: SiI2C) -> Result<Si5351Device<SiI2C>, si5351::Er
     Ok(si_clock)
 }
 
-pub const SYS_PLL_CONFIG_100MHZ: PLLConfig = PLLConfig {
+pub const SYS_PLL_CONFIG: PLLConfig = PLLConfig {
     vco_freq: HertzU32::MHz(1000),
     refdiv: 1,
     post_div1: 5,
-    post_div2: 1,
+    post_div2: 3,
 };
 
 /// Panics on failure.
@@ -132,7 +132,7 @@ pub fn setup_pll(
 ) -> Result<PhaseLockedLoop<Locked, PLL_SYS>, pll::Error> {
     xosc_device.ctrl().write(|w| w.enable().disable());
 
-    setup_pll_blocking(pll_sys, CRYSTAL_FREQ, SYS_PLL_CONFIG_100MHZ, clocks, resets)
+    setup_pll_blocking(pll_sys, CRYSTAL_FREQ, SYS_PLL_CONFIG, clocks, resets)
 }
 
 pub fn setup_sysclk(

@@ -209,6 +209,7 @@ fn main() -> ! {
             },
         ),
         Rp2040Links::new(rx0, rx1, rx2, rx3, tx0, tx1, tx2, tx3),
+        [true, true, true, true],
         bittide_impls::chips::rp2040::SioFifo(sio_fifo),
         tide_fifos,
     );

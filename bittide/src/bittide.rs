@@ -1,4 +1,5 @@
 use controllers::controller::FrequencyController;
+use defmt::info;
 use heapless::{Deque, Vec};
 
 // TODO: debugging, starts with keeping track of things:
@@ -18,8 +19,45 @@ use heapless::{Deque, Vec};
 pub struct BittideChannelControl<F, const B: usize, L, const DEGREE: usize, FIFO> {
     frequency_controller: F,
     links: L,
+    link_mask: [bool; DEGREE],
     sio_fifo: FIFO,
     tide_fifos: [BittideFifo<B>; DEGREE],
+    debug_info: BittideChannelControlDebugInfo,
+}
+
+#[derive(Debug, Default)]
+pub struct BittideChannelControlDebugInfo {
+    pub buffer_levels: [u32; 4],
+}
+
+#[derive(Debug, defmt::Format)]
+pub enum BittideChannelControlError {
+    DecodeError,
+    SyncMessageFromUserCode,
+    InvalidNeigbor,
+    TideFifoFull,
+}
+
+impl BittideChannelControlError {
+    pub fn encode(result: Result<(), Self>) -> u32 {
+        match result {
+            Ok(()) => 0,
+            Err(Self::DecodeError) => 1,
+            Err(Self::SyncMessageFromUserCode) => 2,
+            Err(Self::InvalidNeigbor) => 3,
+            Err(Self::TideFifoFull) => 4,
+        }
+    }
+
+    pub fn decode(value: u32) -> Result<(), Self> {
+        match value {
+            0 => Ok(()),
+            2 => Err(Self::SyncMessageFromUserCode),
+            3 => Err(Self::InvalidNeigbor),
+            4 => Err(Self::TideFifoFull),
+            _ => Err(Self::DecodeError),
+        }
+    }
 }
 
 impl<F, const B: usize, L, const DEGREE: usize, FIFO> BittideChannelControl<F, B, L, DEGREE, FIFO>
@@ -31,14 +69,17 @@ where
     pub fn new(
         frequency_controller: F,
         links: L,
+        link_mask: [bool; DEGREE],
         sio_fifo: FIFO,
         tide_fifos: [BittideFifo<B>; DEGREE],
     ) -> Self {
         Self {
             frequency_controller,
             links,
+            link_mask,
             sio_fifo,
             tide_fifos,
+            debug_info: BittideChannelControlDebugInfo::default(),
         }
     }
 
@@ -46,7 +87,12 @@ where
     /// This function must be called _exactly_ every `CLOCKS_PER_SYNC_WORD` system clock cycles.
     /// All clocks should be set up such that the execution of this function takes fewer clocks than that
     /// for its worst case execution path otherwise it cannot finish.
-    pub fn interrupt(&mut self) {
+    pub fn interrupt(&mut self) -> Result<(), BittideChannelControlError> {
+        // TODO: set error in debug info
+        self.interrupt_internal()
+    }
+
+    fn interrupt_internal(&mut self) -> Result<(), BittideChannelControlError> {
         // Read user data from SIO FIFO
         let user_word = self.sio_fifo.read();
 
@@ -55,13 +101,15 @@ where
 
         if let Some(message) = user_word.map(BittideMessage::deserialize) {
             match message {
-                BittideMessage::SyncMessage => panic!("unexpected"),
+                BittideMessage::SyncMessage => {
+                    return Err(BittideChannelControlError::SyncMessageFromUserCode)
+                }
                 BittideMessage::CommMessage { neighbor, data: _ } => {
                     let neighbor: usize = neighbor as usize;
                     if (neighbor) < 4 {
                         messages[neighbor] = message;
                     } else {
-                        panic!("Invalid neigbor selected");
+                        return Err(BittideChannelControlError::InvalidNeigbor);
                     }
                 }
             }
@@ -72,17 +120,33 @@ where
         // Read rx fifos and put on tide fifos
         let messages = self.links.read();
 
-        for (fifo, message) in self.tide_fifos.iter_mut().zip(messages.into_iter()) {
+        for (&enabled, (fifo, message)) in self
+            .link_mask
+            .iter()
+            .zip(self.tide_fifos.iter_mut().zip(messages.into_iter()))
+        {
+            if !enabled {
+                continue;
+            }
+
             for message in message {
                 fifo.fifo
                     .push_back(message)
-                    .expect("tide fifo not large enough")
+                    .map_err(|_| BittideChannelControlError::TideFifoFull)?;
                 // TODO: write good error dump here with trace of last N fifo fill levels
             }
         }
 
         // Read one message from front of tide fifos and if necessary, put on SIO fifo.
-        for (id, fifo) in self.tide_fifos.iter_mut().enumerate() {
+        for (&enabled, (id, fifo)) in self
+            .link_mask
+            .iter()
+            .zip(self.tide_fifos.iter_mut().enumerate())
+        {
+            if !enabled {
+                continue;
+            }
+
             let message = fifo.fifo.pop_front();
 
             if let Some(message) = message {
@@ -106,10 +170,28 @@ where
         let buffer_levels: Vec<usize, DEGREE> =
             self.tide_fifos.iter().map(|f| f.buffer_levels()).collect();
 
+        self.debug_info
+            .buffer_levels
+            .iter_mut()
+            .enumerate()
+            .for_each(|(index, level)| {
+                *level = self
+                    .tide_fifos
+                    .get(index)
+                    .map(|fifo| fifo.buffer_levels())
+                    .unwrap_or_default() as u32
+            });
+
         let current_degree = self.links.active_fifos().iter().filter(|&&b| b).count();
 
         self.frequency_controller.set_degree(current_degree);
         self.frequency_controller.run(&buffer_levels);
+
+        Ok(())
+    }
+
+    pub fn debug(&self) -> &BittideChannelControlDebugInfo {
+        &self.debug_info
     }
 }
 
@@ -152,7 +234,7 @@ impl<const B: usize> Default for BittideFifo<B> {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, defmt::Format)]
 pub enum BittideMessage {
     /// Constant message used for sync purposes when no user message is ready
     SyncMessage,

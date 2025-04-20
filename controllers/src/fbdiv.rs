@@ -58,7 +58,9 @@ impl FbdivController {
 const FBDIV_RANGE: RangeInclusive<i32> = 97..=103;
 
 impl<const B: usize> FrequencyController<B> for FbdivController {
-    fn run(&mut self, buffer_levels: &[usize]) {
+    type Error = ();
+
+    fn run(&mut self, buffer_levels: &[usize]) -> Result<(), Self::Error> {
         self.i += 1;
         assert!(buffer_levels.len() >= self.degree); // TODO: return Err?
         let half_full = (self.degree * B) / 2;
@@ -101,6 +103,8 @@ impl<const B: usize> FrequencyController<B> for FbdivController {
         let fbdiv_int = self.fbdiv_internal.round().int().to_bits() >> 16;
 
         self.write_fbdiv(fbdiv_int);
+
+        Ok(())
     }
 
     fn set_degree(&mut self, new_degree: usize) {

@@ -16,6 +16,7 @@ pub struct BuildConfig {
 pub struct BuildConstants {
     integral: HashMap<String, Vec<i32>>,
     string: HashMap<String, Vec<String>>,
+    boolean: HashMap<String, Vec<bool>>,
 }
 
 impl BuildConfig {
@@ -53,6 +54,12 @@ impl BuildConfig {
                 .string
                 .iter()
                 .map(|(key, vec)| (key.clone(), vec![vec.get(index).unwrap().clone()]))
+                .collect(),
+            boolean: self
+                .constants
+                .boolean
+                .iter()
+                .map(|(key, vec)| (key.clone(), vec![*vec.get(index).unwrap()]))
                 .collect(),
         };
 
@@ -92,6 +99,19 @@ impl BuildConfig {
         for (name, value) in self.constants.string.iter() {
             let line = format!(
                 "pub const {}: &str = \"{}\";\n",
+                name,
+                value.get(binary_index).unwrap_or_else(|| panic!(
+                    "Expect every vec to be of at least length {}",
+                    self.num_binaries
+                ))
+            );
+
+            string.push_str(&line);
+        }
+
+        for (name, value) in self.constants.boolean.iter() {
+            let line = format!(
+                "pub const {}: bool = {};\n",
                 name,
                 value.get(binary_index).unwrap_or_else(|| panic!(
                     "Expect every vec to be of at least length {}",

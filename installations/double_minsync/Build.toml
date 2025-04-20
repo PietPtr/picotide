@@ -7,3 +7,11 @@ SI_FRAC = [1, 40]
 
 [constants.string]
 NAME = ["north", "south"]
+
+# TODO: allow these to be absent?
+[constants.boolean]
+LINK_NORTH = [false, true]
+LINK_EAST = [false, false]
+LINK_SOUTH = [true, false]
+LINK_WEST = [false, false]
+SHOULD_SEND = [true, false]

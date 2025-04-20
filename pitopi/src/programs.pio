@@ -13,7 +13,7 @@ tx:
 .program pitopi_tx
 .side_set 2
 .wrap_target
-word:
+word:                       ;      WC
     set x, 31               side 0b00
     pull ifempty            side 0b00
 tx:
@@ -21,11 +21,25 @@ tx:
     jmp x-- tx              side 0b10
 .wrap
 
+.program pitopi_tx_mirror_sideset
+.side_set 2
+.wrap_target
+word:                       ;      CW
+    set x, 31               side 0b00
+    pull ifempty            side 0b00
+tx:
+    out pins, 1             side 0b11
+    jmp x-- tx              side 0b01
+.wrap
+
+; pin 0: data, since the `in pins` instruction shifts one bit of data in the word.
+; pin 1: word designator
+; pin 2: clock
 .program pitopi_rx
 .wrap_target
-    wait 1 pin 2            ; make sure the word line is high while reading a word
-    wait 1 pin 1
-    wait 0 pin 1            ; wait until a falling edge
+    wait 1 pin 1            ; make sure the word line is high while reading a word
+    wait 1 pin 2
+    wait 0 pin 2            ; wait until a falling edge on clocks
     in pins, 1              ; and shift in whatever is on the input
     push iffull noblock
 .wrap

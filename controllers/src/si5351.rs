@@ -41,7 +41,7 @@ impl<SDA, SCL> Si5351Controller<I2C<I2C1, (SDA, SCL)>> {
     /// the config needs an address + 9 bytes, which is less than the 16 bytes that the i2c TX fifo seems to have, so this call _should_
     /// be non-blocking already, however, run() is certainly called more often than it takes to transmit those 83 bits over a ≤400kHz line.
     /// So we can monitor the fill level of the tx fifo here to check if we're ready to send.
-    fn set_pll_frac(&mut self, frac: u32) {
+    fn set_pll_frac(&mut self, frac: u32) -> Result<(), Si5351Error> {
         // unsafe and a hack, can we do the ownership in a better way? only works if the SI is connected on I2C1 now...
         unsafe {
             let pac = pac::Peripherals::steal();
@@ -49,21 +49,27 @@ impl<SDA, SCL> Si5351Controller<I2C<I2C1, (SDA, SCL)>> {
 
             // Cannot run I2C non-blocking
             if fill_level > 0 {
-                return;
+                return Ok(());
             }
         }
         let frac = frac & 0x7ffff; // TODO: verify. error?
         self.si
             .setup_pll(PLL::A, 35, frac, 0xfffff)
-            .expect("Cannot setup PLL");
+            .map_err(|_| Si5351Error::SetupPllI2cError)
     }
 }
 
 const PLL_FRAC_MAX: I16F16 = I16F16::from_bits(0xfffff);
 const PLL_FRAC_MIN: I16F16 = I16F16::from_bits(0x00000);
 
+pub enum Si5351Error {
+    SetupPllI2cError,
+}
+
 impl<SDA, SCL, const B: usize> FrequencyController<B> for Si5351Controller<I2C<I2C1, (SDA, SCL)>> {
-    fn run(&mut self, buffer_levels: &[usize]) {
+    type Error = Si5351Error;
+
+    fn run(&mut self, buffer_levels: &[usize]) -> Result<(), Self::Error> {
         //TODO: remove some common code between controllers
         assert!(buffer_levels.len() >= self.degree); // TODO: return Err? type level thing?
         let half_full = (self.degree * B) / 2;
@@ -76,7 +82,9 @@ impl<SDA, SCL, const B: usize> FrequencyController<B> for Si5351Controller<I2C<I
         self.divider = (self.divider + adjust).clamp(PLL_FRAC_MIN, PLL_FRAC_MAX);
 
         // TODO: takes ~1ms to apply (depending on I2C speed), might be too long?
-        self.set_pll_frac(self.divider.to_bits() as u32); // TODO: way more safety in these type conversions?
+        self.set_pll_frac(self.divider.to_bits() as u32)?; // TODO: way more safety in these type conversions?
+
+        Ok(())
     }
 
     fn set_degree(&mut self, new_degree: usize) {

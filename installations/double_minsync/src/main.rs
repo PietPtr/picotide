@@ -6,55 +6,56 @@
 // #[used]
 // pub static BOOT2_FIRMWARE: [u8; 256] = rp2040_boot2::BOOT_LOADER_W25Q080;
 
+use core::cell::RefCell;
+use core::fmt::Write;
+use core::sync::atomic::{self, AtomicU32};
+
+use bittide::bittide::{BittideChannelControlDebugInfo, BittideChannelControlError, BittideFifo};
+use bittide_impls::chips::rp2040::Rp2040Links;
+use controllers::pid::PidSettings;
+use controllers::si5351::Si5351Controller;
 use cortex_m::asm;
+use cortex_m_rt::exception;
+use critical_section::Mutex;
 #[allow(unused_imports)]
 use defmt::{error, info, warn};
 use defmt_rtt as _;
-use embedded_graphics::mono_font::ascii::FONT_6X9;
 use embedded_graphics::prelude::DrawTarget;
 use embedded_graphics::primitives::{PrimitiveStyle, StyledDrawable};
 use embedded_graphics::{
-    mono_font::MonoTextStyleBuilder,
     pixelcolor::BinaryColor,
-    prelude::{Dimensions, Point, Size},
+    prelude::{Point, Size},
     primitives::Rectangle,
     text::{Baseline, Text},
     Drawable,
 };
-use embedded_hal::digital::v2::OutputPin;
+use embedded_hal::digital::v2::{InputPin, ToggleableOutputPin};
+use fixed::types::I16F16;
 use fugit::{HertzU32, RateExtU32};
-use heapless::String;
-use minsync::display::{draw_key_integral, draw_key_value};
+use heapless::{String, Vec};
+use minsync::display::{draw_key_integral, draw_key_value, DEFAULT_TEXT_STYLE};
+use minsync::hal::gpio::{self, FunctionPio0, FunctionPio1};
+use minsync::hal::pio::PIOExt;
 use minsync::si_i2c;
 use panic_probe as _;
-use si5351::Si5351;
-use ssd1306::{prelude::*, I2CDisplayInterface, Ssd1306};
+use pitopi::Pitopi;
 
 use minsync::hal;
 use minsync::hal::pac;
-use minsync::{
-    entry,
-    hal::{pll::PLLConfig, Watchdog, I2C},
-};
+use minsync::{entry, hal::Watchdog};
 
 mod generated_constants;
 
 pub const EXTERNAL_XTAL_FREQ_HZ: HertzU32 = HertzU32::from_raw(12_000_000u32);
 
-pub const SYS_PLL_CONFIG_100MHZ: PLLConfig = PLLConfig {
-    vco_freq: HertzU32::MHz(1000),
-    refdiv: 1,
-    post_div1: 5,
-    post_div2: 1,
-};
-
 /// The divisor of how many CPU cycles should pass before a new word is sent to all neigboring nodes.
-pub const CLOCKS_PER_SYNC_WORD: u32 = 4096;
+// pub const CLOCKS_PER_SYNC_WORD: u32 = 4096;
+pub const CLOCKS_PER_SYNC_WORD: u32 = 4096 * 256;
 
 #[entry]
-fn main() -> ! {
+fn main_pitopi_test() -> ! {
     let mut pac = pac::Peripherals::take().unwrap();
-    let _core = pac::CorePeripherals::take().unwrap();
+    let mut core = pac::CorePeripherals::take().unwrap();
     let sio = hal::Sio::new(pac.SIO);
 
     let watchdog = Watchdog::new(pac.WATCHDOG);
@@ -69,11 +70,104 @@ fn main() -> ! {
 
     let mut clocks = minsync::clocks::minimal_clock_setup(pac.CLOCKS, pac.ROSC, pins.gpout3)
         .expect("Failed to do minimal clock setup.");
-    let mut si_clock = minsync::clocks::setup_si_as_crystal(si_i2c!(pac, pins, clocks, 1.kHz()))
+    let si_clock = minsync::clocks::setup_si_as_crystal(si_i2c!(pac, pins, clocks, 1.kHz()))
         .expect("Failed to setup Si5351");
     minsync::clocks::setup_pll_and_sysclk(&mut clocks, pac.PLL_SYS, &mut pac.XOSC, &mut pac.RESETS);
+    // minsync::clocks::setup_pll(&mut clocks, pac.PLL_SYS, &mut pac.XOSC, &mut pac.RESETS).unwrap();
 
-    let mut display = minsync::display::setup(minsync::display_i2c!(pac, pins, clocks, 300.kHz()))
+    let mut display = minsync::display::setup(minsync::display_i2c!(pac, pins, clocks, 100.kHz()))
+        .expect("Couldn't set up display.");
+
+    draw_key_value(&mut display, 0, "Name", generated_constants::NAME).unwrap();
+    draw_key_integral(
+        &mut display,
+        1,
+        "should send",
+        generated_constants::SHOULD_SEND as u32,
+    )
+    .unwrap();
+
+    display.flush().unwrap();
+
+    let (rx_pio, rx_sm0, _, _, _) = pac.PIO0.split(&mut pac.RESETS);
+    let (tx_pio, _, _, tx_sm2, _) = pac.PIO1.split(&mut pac.RESETS);
+
+    let rx0_data = pins.north_3.into_function::<FunctionPio0>().into_dyn_pin();
+    let rx0_word = pins.north_4.into_function::<FunctionPio0>().into_dyn_pin();
+    let rx0_clk = pins.north_5.into_function::<FunctionPio0>().into_dyn_pin();
+
+    let tx2_data = pins.south_18.into_function::<FunctionPio1>().into_dyn_pin();
+    let tx2_word = pins.south_17.into_function::<FunctionPio1>().into_dyn_pin();
+    let tx2_clk = pins.south_16.into_function::<FunctionPio1>().into_dyn_pin();
+
+    let mut pitopi = Pitopi::new(rx_pio, tx_pio);
+
+    pitopi.install_programs();
+
+    let (rx0_sm, mut rx0, _, mut tx2) = pitopi
+        .setup_link(
+            rx_sm0, rx0_data, rx0_clk, rx0_word, tx_sm2, tx2_data, tx2_clk, tx2_word,
+        )
+        .unwrap();
+
+    let mut led = pins
+        .led_or_si_clk1
+        .into_push_pull_output_in_state(gpio::PinState::High);
+
+    if generated_constants::SHOULD_SEND {
+        let mut i = 0;
+        loop {
+            tx2.write(i);
+            i += 1;
+
+            for _ in 0..1000000 {
+                asm::nop();
+            }
+            led.toggle().ok();
+        }
+    } else {
+        info!("listening");
+        loop {
+            if let Some(v) = rx0.read() {
+                info!("got value from read fifo {:#?}", v);
+                led.toggle().ok();
+            }
+
+            // let mut addresses = Vec::<_, 100>::new();
+
+            // while !addresses.is_full() {
+            //     addresses.push(rx0_sm.instruction_address() as i32).unwrap();
+            // }
+
+            // info!("{:?}", addresses);
+        }
+    }
+}
+
+/*
+fn main_full() -> ! {
+    let mut pac = pac::Peripherals::take().unwrap();
+    let mut core = pac::CorePeripherals::take().unwrap();
+    let sio = hal::Sio::new(pac.SIO);
+
+    let watchdog = Watchdog::new(pac.WATCHDOG);
+    watchdog.disable();
+
+    let pins = minsync::Pins::new(
+        pac.IO_BANK0,
+        pac.PADS_BANK0,
+        sio.gpio_bank0,
+        &mut pac.RESETS,
+    );
+
+    let mut clocks = minsync::clocks::minimal_clock_setup(pac.CLOCKS, pac.ROSC, pins.gpout3)
+        .expect("Failed to do minimal clock setup.");
+    let si_clock = minsync::clocks::setup_si_as_crystal(si_i2c!(pac, pins, clocks, 1.kHz()))
+        .expect("Failed to setup Si5351");
+    minsync::clocks::setup_pll_and_sysclk(&mut clocks, pac.PLL_SYS, &mut pac.XOSC, &mut pac.RESETS);
+    // minsync::clocks::setup_pll(&mut clocks, pac.PLL_SYS, &mut pac.XOSC, &mut pac.RESETS).unwrap();
+
+    let mut display = minsync::display::setup(minsync::display_i2c!(pac, pins, clocks, 100.kHz()))
         .expect("Couldn't set up display.");
 
     draw_key_value(&mut display, 0, "Name", generated_constants::NAME).unwrap();
@@ -81,34 +175,302 @@ fn main() -> ! {
 
     display.flush().unwrap();
 
-    let mut led = pins.led_or_si_clk1.into_push_pull_output();
+    // -- Bittide setup -- TODO: make common in BSP
 
-    loop {
-        for frac in (-generated_constants::SI_FRAC..generated_constants::SI_FRAC)
-            .chain((-generated_constants::SI_FRAC..generated_constants::SI_FRAC).rev())
-        {
-            for _ in 0..5_000_000 {
-                asm::nop();
+    {
+        let (rx_pio, rx_sm0, rx_sm1, rx_sm2, rx_sm3) = pac.PIO0.split(&mut pac.RESETS);
+        let (tx_pio, tx_sm0, tx_sm1, tx_sm2, tx_sm3) = pac.PIO1.split(&mut pac.RESETS);
+
+        let rx0_data = pins
+            .north_rx0
+            .into_function::<FunctionPio0>()
+            .into_dyn_pin();
+        let rx0_clk = pins
+            .north_rx1
+            .into_function::<FunctionPio0>()
+            .into_dyn_pin();
+        let rx0_word = pins
+            .north_rx2
+            .into_function::<FunctionPio0>()
+            .into_dyn_pin();
+
+        let rx1_data = pins.east_rx0.into_function::<FunctionPio0>().into_dyn_pin();
+        let rx1_clk = pins.east_rx1.into_function::<FunctionPio0>().into_dyn_pin();
+        let rx1_word = pins.east_rx2.into_function::<FunctionPio0>().into_dyn_pin();
+
+        let rx2_data = pins
+            .south_rx0
+            .into_function::<FunctionPio0>()
+            .into_dyn_pin();
+        let rx2_clk = pins
+            .south_rx1
+            .into_function::<FunctionPio0>()
+            .into_dyn_pin();
+        let rx2_word = pins
+            .south_rx2
+            .into_function::<FunctionPio0>()
+            .into_dyn_pin();
+
+        let rx3_data = pins.west_rx0.into_function::<FunctionPio0>().into_dyn_pin();
+        let rx3_clk = pins.west_rx1.into_function::<FunctionPio0>().into_dyn_pin();
+        let rx3_word = pins.west_rx2.into_function::<FunctionPio0>().into_dyn_pin();
+
+        let tx0_data = pins
+            .north_tx0
+            .into_function::<FunctionPio1>()
+            .into_dyn_pin();
+        let tx0_clk = pins
+            .north_tx1
+            .into_function::<FunctionPio1>()
+            .into_dyn_pin();
+        let tx0_word = pins
+            .north_tx2
+            .into_function::<FunctionPio1>()
+            .into_dyn_pin();
+
+        let tx1_data = pins.east_tx0.into_function::<FunctionPio1>().into_dyn_pin();
+        let tx1_clk = pins.east_tx1.into_function::<FunctionPio1>().into_dyn_pin();
+        let tx1_word = pins.east_tx2.into_function::<FunctionPio1>().into_dyn_pin();
+
+        let tx2_data = pins
+            .south_tx0
+            .into_function::<FunctionPio1>()
+            .into_dyn_pin();
+        let tx2_clk = pins
+            .south_tx1
+            .into_function::<FunctionPio1>()
+            .into_dyn_pin();
+        let tx2_word = pins
+            .south_tx2
+            .into_function::<FunctionPio1>()
+            .into_dyn_pin();
+
+        let tx3_data = pins.west_tx0.into_function::<FunctionPio1>().into_dyn_pin();
+        let tx3_clk = pins.west_tx1.into_function::<FunctionPio1>().into_dyn_pin();
+        let tx3_word = pins.west_tx2.into_function::<FunctionPio1>().into_dyn_pin();
+
+        let mut pitopi = Pitopi::new(rx_pio, tx_pio);
+
+        pitopi.install_programs();
+
+        let (rx0_sm, mut rx0, _, tx0) = pitopi
+            .setup_link(
+                rx_sm0, rx0_data, rx0_clk, rx0_word, tx_sm0, tx0_data, tx0_clk, tx0_word,
+            )
+            .unwrap();
+
+        let (_, rx1, _, tx1) = pitopi
+            .setup_link(
+                rx_sm1, rx1_data, rx1_clk, rx1_word, tx_sm1, tx1_data, tx1_clk, tx1_word,
+            )
+            .unwrap();
+
+        let (_, rx2, _, tx2) = pitopi
+            .setup_link(
+                rx_sm2, rx2_data, rx2_clk, rx2_word, tx_sm2, tx2_data, tx2_clk, tx2_word,
+            )
+            .unwrap();
+
+        let (_, rx3, _, tx3) = pitopi
+            .setup_link(
+                rx_sm3, rx3_data, rx3_clk, rx3_word, tx_sm3, tx3_data, tx3_clk, tx3_word,
+            )
+            .unwrap();
+
+        let sio_fifo = sio.fifo;
+
+        let tide_fifos = [
+            BittideFifo::new(),
+            BittideFifo::new(),
+            BittideFifo::new(),
+            BittideFifo::new(),
+        ];
+
+        let link_mask = [
+            generated_constants::LINK_NORTH,
+            generated_constants::LINK_EAST,
+            generated_constants::LINK_SOUTH,
+            generated_constants::LINK_WEST,
+        ];
+
+        info!("{:?}", link_mask);
+        use bittide::bittide::Links;
+
+        // let mut links = Rp2040Links::new(rx0, rx1, rx2, rx3, tx0, tx1, tx2, tx3);
+        if !generated_constants::SHOULD_SEND {
+            info!("Reading rx0");
+
+            loop {
+                if let Some(v) = rx0.read() {
+                    info!("{:#?}", v);
+                }
+
+                let mut addresses = Vec::<_, 100>::new();
+
+                while !addresses.is_full() {
+                    addresses.push(rx0_sm.instruction_address()).unwrap();
+                }
+
+                info!("{:?}", addresses);
             }
-
-            led.set_high().unwrap();
-
-            for _ in 0..1000 {
-                asm::nop();
-            }
-
-            led.set_low().unwrap();
-
-            let frac = (0x3ffff + frac) as u32;
-
-            si_clock
-                .setup_pll(si5351::PLL::A, 35, frac, 0xfffff)
-                .expect("Cannot setup PLL");
-
-            draw_key_integral(&mut display, 2, "frac", frac).unwrap();
-            display.flush().unwrap();
         }
+
+        let tide_controller = bittide_impls::boards::minsync_v02::Control::new(
+            Si5351Controller::new(
+                si_clock,
+                4,
+                PidSettings {
+                    kp: I16F16::from_num(0.01),
+                    ki: I16F16::from_num(0.00000001),
+                    kd: I16F16::from_num(0.01),
+                },
+            ),
+            Rp2040Links::new(rx0, rx1, rx2, rx3, tx0, tx1, tx2, tx3),
+            link_mask,
+            bittide_impls::chips::rp2040::SioFifo(sio_fifo),
+            tide_fifos,
+        );
+
+        critical_section::with(|cs| {
+            GLOBAL_CONTROL.borrow(cs).replace(Some(tide_controller));
+        });
+
+        bittide_impls::chips::rp2040::setup_interrupt(CLOCKS_PER_SYNC_WORD, &mut core.SYST);
+    }
+
+    let mut led = pins
+        .led_or_si_clk1
+        .into_push_pull_output_in_state(gpio::PinState::High);
+
+    info!("halloooooooooo");
+
+    #[allow(clippy::empty_loop)]
+    loop {
+        led.toggle().ok();
+
+        DEBUG.draw(&mut display, Point::new(0, 9)).ok();
+        display.flush().ok();
+    }
+}
+*/
+
+static GLOBAL_CONTROL: Mutex<RefCell<Option<bittide_impls::boards::minsync_v02::Control>>> =
+    Mutex::new(RefCell::new(None));
+
+pub static DEBUG: BufferDebugger = BufferDebugger::new();
+
+// TODO: find out if drawing can be safely stalled by bittide controllers
+
+#[exception]
+fn SysTick() {
+    critical_section::with(|cs| {
+        let mut refcell = GLOBAL_CONTROL
+            .borrow(cs)
+            .try_borrow_mut()
+            .expect("Control algorithm cannot keep up, already borrowed");
+        let mut control = refcell.take().expect("control not initialized.");
+
+        let result = control.interrupt();
+
+        DEBUG.update(control.debug(), result);
+
+        *refcell = Some(control);
+    });
+}
+
+pub trait OledDebugger {
+    fn update(
+        &self,
+        debug_info: &BittideChannelControlDebugInfo,
+        result: Result<(), BittideChannelControlError>,
+    );
+}
+
+#[derive(Debug, Default)]
+pub struct BufferDebugger {
+    buffer_levels_a: [AtomicU32; 4],
+    error: AtomicU32,
+}
+
+impl BufferDebugger {
+    pub const fn new() -> Self {
+        Self {
+            buffer_levels_a: [
+                AtomicU32::new(0),
+                AtomicU32::new(1),
+                AtomicU32::new(2),
+                AtomicU32::new(3),
+            ],
+            error: AtomicU32::new(0),
+        }
+    }
+
+    pub fn draw<D>(&self, display: &mut D, position: Point) -> Result<(), D::Error>
+    where
+        D: DrawTarget<Color = BinaryColor>,
+    {
+        let size = Size::new(128, 22);
+
+        Rectangle::new(position, size)
+            .draw_styled(&PrimitiveStyle::with_fill(BinaryColor::Off), display)?;
+
+        let mut buffer_texts = String::<22>::new();
+
+        let cardinals = ["N", "E", "S", "W"];
+
+        for (buffer_level, cardinal) in self.buffer_levels_a.iter().zip(cardinals.iter()) {
+            let mut buffer = itoa::Buffer::new();
+            let i_as_str = buffer.format(buffer_level.load(atomic::Ordering::Relaxed));
+            buffer_texts.push_str(cardinal).ok();
+            buffer_texts.push_str(i_as_str).ok();
+            buffer_texts.push(' ').ok();
+        }
+
+        Text::with_baseline(&buffer_texts, position, DEFAULT_TEXT_STYLE, Baseline::Top)
+            .draw(display)?;
+
+        let error = BittideChannelControlError::decode(self.error.load(atomic::Ordering::Relaxed));
+
+        let mut error_str = String::<22>::new();
+
+        match error {
+            Ok(()) => {
+                error_str.push_str("Ok()").ok();
+            }
+            Err(err) => {
+                write!(&mut error_str, "{:?}", err).ok();
+            }
+        };
+
+        Text::with_baseline(
+            &error_str,
+            position + Point::new(0, 9),
+            DEFAULT_TEXT_STYLE,
+            Baseline::Top,
+        )
+        .draw(display)?;
+
+        Ok(())
     }
 }
 
-// TODO: find out if drawing can be safely stalled by bittide controllers
+impl OledDebugger for BufferDebugger {
+    fn update(
+        &self,
+        debug_info: &BittideChannelControlDebugInfo,
+        result: Result<(), BittideChannelControlError>,
+    ) {
+        for (level, atomic) in debug_info
+            .buffer_levels
+            .iter()
+            .zip(self.buffer_levels_a.iter())
+        {
+            atomic.store(*level, atomic::Ordering::Relaxed);
+        }
+
+        self.error.store(
+            BittideChannelControlError::encode(result),
+            atomic::Ordering::Relaxed,
+        );
+    }
+}

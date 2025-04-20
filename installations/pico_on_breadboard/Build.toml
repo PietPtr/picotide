@@ -6,3 +6,5 @@ BUFFER_SIZE = [64, 64, 64]
 
 [constants.string]
 NAME = ["red", "blue", "green"]
+
+[constants.boolean]
