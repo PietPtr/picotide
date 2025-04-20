@@ -11,6 +11,11 @@ use rp_pico::{
     pac::{PIO0, PIO1},
 };
 
+pub const DEFAULT_LINK_CONFIG: LinkConfig = LinkConfig {
+    rx_program: RxProgram::Consecutive,
+    tx_program: TxProgram::SidesetWC,
+};
+
 pub struct Pitopi {
     rx_pio: PIO<PIO0>,
     tx_pio: PIO<PIO1>,

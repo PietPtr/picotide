@@ -71,7 +71,7 @@ where
     Ok(clocks)
 }
 
-type SiI2C = I2C<
+pub type SiI2C = I2C<
     pac::I2C1,
     (
         Pin<Gpio14, FunctionI2c, PullUp>,

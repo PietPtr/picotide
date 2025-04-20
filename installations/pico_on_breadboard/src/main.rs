@@ -157,25 +157,57 @@ fn main() -> ! {
 
     let (_, rx0, _, tx0) = pitopi
         .setup_link(
-            rx_sm0, rx0_data, rx0_clk, rx0_word, tx_sm0, tx0_data, tx0_clk, tx0_word,
+            pitopi::DEFAULT_LINK_CONFIG,
+            rx_sm0,
+            rx0_data,
+            rx0_clk,
+            rx0_word,
+            tx_sm0,
+            tx0_data,
+            tx0_clk,
+            tx0_word,
         )
         .unwrap();
 
     let (_, rx1, _, tx1) = pitopi
         .setup_link(
-            rx_sm1, rx1_data, rx1_clk, rx1_word, tx_sm1, tx1_data, tx1_clk, tx1_word,
+            pitopi::DEFAULT_LINK_CONFIG,
+            rx_sm1,
+            rx1_data,
+            rx1_clk,
+            rx1_word,
+            tx_sm1,
+            tx1_data,
+            tx1_clk,
+            tx1_word,
         )
         .unwrap();
 
     let (_, rx2, _, tx2) = pitopi
         .setup_link(
-            rx_sm2, rx2_data, rx2_clk, rx2_word, tx_sm2, tx2_data, tx2_clk, tx2_word,
+            pitopi::DEFAULT_LINK_CONFIG,
+            rx_sm2,
+            rx2_data,
+            rx2_clk,
+            rx2_word,
+            tx_sm2,
+            tx2_data,
+            tx2_clk,
+            tx2_word,
         )
         .unwrap();
 
     let (_, rx3, _, tx3) = pitopi
         .setup_link(
-            rx_sm3, rx3_data, rx3_clk, rx3_word, tx_sm3, tx3_data, tx3_clk, tx3_word,
+            pitopi::DEFAULT_LINK_CONFIG,
+            rx_sm3,
+            rx3_data,
+            rx3_clk,
+            rx3_word,
+            tx_sm3,
+            tx3_data,
+            tx3_clk,
+            tx3_word,
         )
         .unwrap();
 
@@ -236,7 +268,7 @@ fn SysTick() {
             .expect("Control algorithm cannot keep up, already borrowed");
         let mut control = refcell.take().expect("control not initialized.");
 
-        control.interrupt();
+        control.interrupt().ok();
 
         *refcell = Some(control);
     });

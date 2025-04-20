@@ -1,5 +1,4 @@
 use controllers::controller::FrequencyController;
-use defmt::info;
 use heapless::{Deque, Vec};
 
 // TODO: debugging, starts with keeping track of things:
@@ -36,6 +35,7 @@ pub enum BittideChannelControlError {
     SyncMessageFromUserCode,
     InvalidNeigbor,
     TideFifoFull,
+    FrequenceControllerError,
 }
 
 impl BittideChannelControlError {
@@ -46,6 +46,7 @@ impl BittideChannelControlError {
             Err(Self::SyncMessageFromUserCode) => 2,
             Err(Self::InvalidNeigbor) => 3,
             Err(Self::TideFifoFull) => 4,
+            Err(Self::FrequenceControllerError) => 5,
         }
     }
 
@@ -55,6 +56,7 @@ impl BittideChannelControlError {
             2 => Err(Self::SyncMessageFromUserCode),
             3 => Err(Self::InvalidNeigbor),
             4 => Err(Self::TideFifoFull),
+            5 => Err(Self::FrequenceControllerError),
             _ => Err(Self::DecodeError),
         }
     }
@@ -185,7 +187,9 @@ where
         let current_degree = self.links.active_fifos().iter().filter(|&&b| b).count();
 
         self.frequency_controller.set_degree(current_degree);
-        self.frequency_controller.run(&buffer_levels);
+        self.frequency_controller
+            .run(&buffer_levels)
+            .map_err(|_| BittideChannelControlError::FrequenceControllerError)?;
 
         Ok(())
     }
