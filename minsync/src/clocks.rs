@@ -107,7 +107,7 @@ pub const SYS_PLL_CONFIG: PLLConfig = PLLConfig {
     vco_freq: HertzU32::MHz(1000),
     refdiv: 1,
     post_div1: 5,
-    post_div2: 3,
+    post_div2: 1,
 };
 
 /// Panics on failure.

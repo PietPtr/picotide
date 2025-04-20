@@ -27,39 +27,8 @@ pub struct BittideChannelControl<F, const B: usize, L, const DEGREE: usize, FIFO
 #[derive(Debug, Default)]
 pub struct BittideChannelControlDebugInfo {
     pub buffer_levels: [u32; 4],
-}
-
-#[derive(Debug, defmt::Format)]
-pub enum BittideChannelControlError {
-    DecodeError,
-    SyncMessageFromUserCode,
-    InvalidNeigbor,
-    TideFifoFull,
-    FrequenceControllerError,
-}
-
-impl BittideChannelControlError {
-    pub fn encode(result: Result<(), Self>) -> u32 {
-        match result {
-            Ok(()) => 0,
-            Err(Self::DecodeError) => 1,
-            Err(Self::SyncMessageFromUserCode) => 2,
-            Err(Self::InvalidNeigbor) => 3,
-            Err(Self::TideFifoFull) => 4,
-            Err(Self::FrequenceControllerError) => 5,
-        }
-    }
-
-    pub fn decode(value: u32) -> Result<(), Self> {
-        match value {
-            0 => Ok(()),
-            2 => Err(Self::SyncMessageFromUserCode),
-            3 => Err(Self::InvalidNeigbor),
-            4 => Err(Self::TideFifoFull),
-            5 => Err(Self::FrequenceControllerError),
-            _ => Err(Self::DecodeError),
-        }
-    }
+    pub rx_sync_message_counter: u32,
+    pub rx_comm_message_counter: u32,
 }
 
 impl<F, const B: usize, L, const DEGREE: usize, FIFO> BittideChannelControl<F, B, L, DEGREE, FIFO>
@@ -132,6 +101,13 @@ where
             }
 
             for message in message {
+                match message {
+                    BittideMessage::SyncMessage => self.debug_info.rx_sync_message_counter += 1,
+                    BittideMessage::CommMessage {
+                        neighbor: _,
+                        data: _,
+                    } => self.debug_info.rx_comm_message_counter += 1,
+                }
                 fifo.fifo
                     .push_back(message)
                     .map_err(|_| BittideChannelControlError::TideFifoFull)?;
@@ -267,6 +243,39 @@ impl BittideMessage {
                 let neighbor = (raw >> 1 & 0b111) as u8;
                 BittideMessage::CommMessage { neighbor, data }
             }
+        }
+    }
+}
+
+#[derive(Debug, defmt::Format)]
+pub enum BittideChannelControlError {
+    DecodeError,
+    SyncMessageFromUserCode,
+    InvalidNeigbor,
+    TideFifoFull,
+    FrequenceControllerError,
+}
+
+impl BittideChannelControlError {
+    pub fn encode(result: Result<(), Self>) -> u32 {
+        match result {
+            Ok(()) => 0,
+            Err(Self::DecodeError) => 1,
+            Err(Self::SyncMessageFromUserCode) => 2,
+            Err(Self::InvalidNeigbor) => 3,
+            Err(Self::TideFifoFull) => 4,
+            Err(Self::FrequenceControllerError) => 5,
+        }
+    }
+
+    pub fn decode(value: u32) -> Result<(), Self> {
+        match value {
+            0 => Ok(()),
+            2 => Err(Self::SyncMessageFromUserCode),
+            3 => Err(Self::InvalidNeigbor),
+            4 => Err(Self::TideFifoFull),
+            5 => Err(Self::FrequenceControllerError),
+            _ => Err(Self::DecodeError),
         }
     }
 }

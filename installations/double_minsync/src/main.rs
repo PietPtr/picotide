@@ -28,6 +28,7 @@ use embedded_graphics::{
     text::{Baseline, Text},
     Drawable,
 };
+use embedded_hal::digital::v2::ToggleableOutputPin;
 use fixed::types::I16F16;
 use fugit::{HertzU32, RateExtU32};
 use heapless::String;
@@ -45,7 +46,7 @@ pub const EXTERNAL_XTAL_FREQ_HZ: HertzU32 = HertzU32::from_raw(12_000_000u32);
 
 /// The divisor of how many CPU cycles should pass before a new word is sent to all neigboring nodes.
 // pub const CLOCKS_PER_SYNC_WORD: u32 = 4096;
-pub const CLOCKS_PER_SYNC_WORD: u32 = 4096 * 256;
+pub const CLOCKS_PER_SYNC_WORD: u32 = 700_000;
 
 #[entry]
 fn main_pitopi_test() -> ! {
@@ -68,8 +69,8 @@ fn main_pitopi_test() -> ! {
         .expect("Failed to do minimal clock setup.");
     let si_clock = minsync::clocks::setup_si_as_crystal(si_i2c!(pac, pins.rest, clocks, 1.kHz()))
         .expect("Failed to setup Si5351");
-    // minsync::clocks::setup_pll_and_sysclk(&mut clocks, pac.PLL_SYS, &mut pac.XOSC, &mut pac.RESETS);
-    minsync::clocks::setup_pll(&mut clocks, pac.PLL_SYS, &mut pac.XOSC, &mut pac.RESETS).unwrap();
+    minsync::clocks::setup_pll_and_sysclk(&mut clocks, pac.PLL_SYS, &mut pac.XOSC, &mut pac.RESETS);
+    // minsync::clocks::setup_pll(&mut clocks, pac.PLL_SYS, &mut pac.XOSC, &mut pac.RESETS).unwrap();
 
     let mut display =
         minsync::display::setup(minsync::display_i2c!(pac, pins.rest, clocks, 100.kHz()))
@@ -119,16 +120,21 @@ fn main_pitopi_test() -> ! {
 
     bittide_impls::chips::rp2040::setup_interrupt(CLOCKS_PER_SYNC_WORD, &mut core.SYST);
 
+    let mut led = pins.rest.led_or_si_clk1.into_push_pull_output();
+
     #[allow(clippy::empty_loop)]
-    loop {}
+    loop {
+        led.toggle().unwrap();
+
+        DEBUG.draw(&mut display, Point::new(0, 9)).ok();
+        display.flush().ok();
+    }
 }
 
 static GLOBAL_CONTROL: Mutex<RefCell<Option<bittide_impls::boards::minsync_v02::Control>>> =
     Mutex::new(RefCell::new(None));
 
 pub static DEBUG: BufferDebugger = BufferDebugger::new();
-
-// TODO: find out if drawing can be safely stalled by bittide controllers
 
 #[exception]
 fn SysTick() {
@@ -139,9 +145,17 @@ fn SysTick() {
             .expect("Control algorithm cannot keep up, already borrowed");
         let mut control = refcell.take().expect("control not initialized.");
 
+        // safe because we're only going to be reading systick
+        let core = unsafe { pac::CorePeripherals::steal() };
+        let start = core.SYST.cvr.read();
         let result = control.interrupt();
+        let end = core.SYST.cvr.read();
+
+        info!("bittide algo took {} cycles", start - end);
 
         DEBUG.update(control.debug(), result);
+
+        // TODO: visualize freq stabilizer
 
         *refcell = Some(control);
     });
@@ -160,6 +174,8 @@ pub trait BittideControlDebugger {
 pub struct BufferDebugger {
     buffer_levels_a: [AtomicU32; 4],
     error: AtomicU32,
+    rx_sync_message_counter: AtomicU32,
+    rx_comm_message_counter: AtomicU32,
 }
 
 impl BufferDebugger {
@@ -172,6 +188,8 @@ impl BufferDebugger {
                 AtomicU32::new(3),
             ],
             error: AtomicU32::new(0),
+            rx_sync_message_counter: AtomicU32::new(0),
+            rx_comm_message_counter: AtomicU32::new(0),
         }
     }
 
@@ -201,19 +219,30 @@ impl BufferDebugger {
 
         let error = BittideChannelControlError::decode(self.error.load(atomic::Ordering::Relaxed));
 
-        let mut error_str = String::<22>::new();
+        let mut line_two = String::<22>::new();
+
+        let mut buffer = itoa::Buffer::new();
+        let comm_str = buffer.format(self.rx_comm_message_counter.load(atomic::Ordering::Relaxed));
+
+        let mut buffer = itoa::Buffer::new();
+        let sync_str = buffer.format(self.rx_sync_message_counter.load(atomic::Ordering::Relaxed));
+
+        line_two.push_str(comm_str).ok();
+        line_two.push_str(" ").ok();
+        line_two.push_str(sync_str).ok();
+        line_two.push_str(" ").ok();
 
         match error {
             Ok(()) => {
-                error_str.push_str("Ok()").ok();
+                line_two.push_str("Ok()").ok();
             }
             Err(err) => {
-                write!(&mut error_str, "{:?}", err).ok();
+                write!(&mut line_two, "{:?}", err).ok();
             }
         };
 
         Text::with_baseline(
-            &error_str,
+            &line_two,
             position + Point::new(0, 9),
             DEFAULT_TEXT_STYLE,
             Baseline::Top,
@@ -240,6 +269,16 @@ impl BittideControlDebugger for BufferDebugger {
 
         self.error.store(
             BittideChannelControlError::encode(result),
+            atomic::Ordering::Relaxed,
+        );
+
+        self.rx_comm_message_counter.store(
+            debug_info.rx_comm_message_counter,
+            atomic::Ordering::Relaxed,
+        );
+
+        self.rx_sync_message_counter.store(
+            debug_info.rx_sync_message_counter,
             atomic::Ordering::Relaxed,
         );
     }

@@ -3,7 +3,7 @@ num_binaries = 2
 [constants.integral]
 NODE_ID = [0, 1]
 BUFFER_SIZE = [64, 64]
-SI_FRAC = [1, 40]
+SI_FRAC = [0, 20]
 
 [constants.string]
 NAME = ["north", "south"]
