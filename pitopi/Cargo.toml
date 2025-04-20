@@ -9,4 +9,5 @@ description = "Extremely simplistic 3-wire communication protocol implemented on
 rp-pico = { git = "https://github.com/PietPtr/rp-hal-boards", branch = "main" }
 pio-proc = "0.2.2"
 pio = "0.2.1"
+defmt = "1.0.1"
 

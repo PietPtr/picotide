@@ -1952,6 +1952,7 @@ dependencies = [
 name = "pitopi"
 version = "0.1.0"
 dependencies = [
+ "defmt 1.0.1",
  "pio",
  "pio-proc",
  "rp-pico",

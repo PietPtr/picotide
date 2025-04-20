@@ -38,7 +38,7 @@ use minsync::hal::gpio::{self, FunctionPio0, FunctionPio1};
 use minsync::hal::pio::PIOExt;
 use minsync::si_i2c;
 use panic_probe as _;
-use pitopi::Pitopi;
+use pitopi::{LinkConfig, Pitopi};
 
 use minsync::hal;
 use minsync::hal::pac;
@@ -89,24 +89,118 @@ fn main_pitopi_test() -> ! {
 
     display.flush().unwrap();
 
-    let (rx_pio, rx_sm0, _, _, _) = pac.PIO0.split(&mut pac.RESETS);
-    let (tx_pio, _, _, tx_sm2, _) = pac.PIO1.split(&mut pac.RESETS);
+    let (rx_pio, rx_sm0, rx_sm1, rx_sm2, rx_sm3) = pac.PIO0.split(&mut pac.RESETS);
+    let (tx_pio, tx_sm0, tx_sm1, tx_sm2, tx_sm3) = pac.PIO1.split(&mut pac.RESETS);
 
     let rx0_data = pins.north_3.into_function::<FunctionPio0>().into_dyn_pin();
     let rx0_word = pins.north_4.into_function::<FunctionPio0>().into_dyn_pin();
     let rx0_clk = pins.north_5.into_function::<FunctionPio0>().into_dyn_pin();
 
+    let rx1_data = pins.east_9.into_function::<FunctionPio0>().into_dyn_pin();
+    let rx1_word = pins.east_10.into_function::<FunctionPio0>().into_dyn_pin();
+    let rx1_clk = pins.east_11.into_function::<FunctionPio0>().into_dyn_pin();
+
+    let rx2_data = pins.south_19.into_function::<FunctionPio0>().into_dyn_pin();
+    let rx2_word = pins.south_21.into_function::<FunctionPio0>().into_dyn_pin();
+    let rx2_clk = pins.south_22.into_function::<FunctionPio0>().into_dyn_pin();
+
+    let rx3_data = pins.west_27.into_function::<FunctionPio0>().into_dyn_pin();
+    let rx3_word = pins.west_28.into_function::<FunctionPio0>().into_dyn_pin();
+    let rx3_clk = pins.west_29.into_function::<FunctionPio0>().into_dyn_pin();
+
+    let tx0_data = pins.north_2.into_function::<FunctionPio1>().into_dyn_pin();
+    let tx0_word = pins.north_1.into_function::<FunctionPio1>().into_dyn_pin();
+    let tx0_clk = pins.north_0.into_function::<FunctionPio1>().into_dyn_pin();
+
+    let tx1_data = pins.east_8.into_function::<FunctionPio1>().into_dyn_pin();
+    let tx1_word = pins.east_7.into_function::<FunctionPio1>().into_dyn_pin();
+    let tx1_clk = pins.east_6.into_function::<FunctionPio1>().into_dyn_pin();
+
     let tx2_data = pins.south_18.into_function::<FunctionPio1>().into_dyn_pin();
     let tx2_word = pins.south_17.into_function::<FunctionPio1>().into_dyn_pin();
     let tx2_clk = pins.south_16.into_function::<FunctionPio1>().into_dyn_pin();
+
+    let tx3_data = pins.west_26.into_function::<FunctionPio1>().into_dyn_pin();
+    let tx3_word = pins.west_24.into_function::<FunctionPio1>().into_dyn_pin();
+    let tx3_clk = pins.west_23.into_function::<FunctionPio1>().into_dyn_pin();
 
     let mut pitopi = Pitopi::new(rx_pio, tx_pio);
 
     pitopi.install_programs();
 
-    let (rx0_sm, mut rx0, _, mut tx2) = pitopi
+    let north_link_config = LinkConfig {
+        rx_program: pitopi::RxProgram::Consecutive,
+        tx_program: pitopi::TxProgram::SidesetWC,
+    };
+
+    let (_, mut rx0, _, mut tx0) = pitopi
         .setup_link(
-            rx_sm0, rx0_data, rx0_clk, rx0_word, tx_sm2, tx2_data, tx2_clk, tx2_word,
+            north_link_config,
+            rx_sm0,
+            rx0_data,
+            rx0_clk,
+            rx0_word,
+            tx_sm0,
+            tx0_data,
+            tx0_clk,
+            tx0_word,
+        )
+        .unwrap();
+
+    let east_link_config = LinkConfig {
+        rx_program: pitopi::RxProgram::Consecutive,
+        tx_program: pitopi::TxProgram::SidesetWC,
+    };
+
+    let (_, mut rx1, _, mut tx1) = pitopi
+        .setup_link(
+            east_link_config,
+            rx_sm1,
+            rx1_data,
+            rx1_clk,
+            rx1_word,
+            tx_sm1,
+            tx1_data,
+            tx1_clk,
+            tx1_word,
+        )
+        .unwrap();
+
+    let south_link_config = LinkConfig {
+        rx_program: pitopi::RxProgram::P023,
+        tx_program: pitopi::TxProgram::SidesetWC,
+    };
+
+    let (_, mut rx2, _, mut tx2) = pitopi
+        .setup_link(
+            south_link_config,
+            rx_sm2,
+            rx2_data,
+            rx2_clk,
+            rx2_word,
+            tx_sm2,
+            tx2_data,
+            tx2_clk,
+            tx2_word,
+        )
+        .unwrap();
+
+    let west_link_config = LinkConfig {
+        rx_program: pitopi::RxProgram::Consecutive,
+        tx_program: pitopi::TxProgram::SidesetWC,
+    };
+
+    let (_, mut rx3, _, mut tx3) = pitopi
+        .setup_link(
+            west_link_config,
+            rx_sm3,
+            rx3_data,
+            rx3_clk,
+            rx3_word,
+            tx_sm3,
+            tx3_data,
+            tx3_clk,
+            tx3_word,
         )
         .unwrap();
 
@@ -114,33 +208,30 @@ fn main_pitopi_test() -> ! {
         .led_or_si_clk1
         .into_push_pull_output_in_state(gpio::PinState::High);
 
-    if generated_constants::SHOULD_SEND {
-        let mut i = 0;
-        loop {
-            tx2.write(i);
-            i += 1;
+    let mut i = 0;
+    loop {
+        #[allow(clippy::identity_op)]
+        tx0.write(i & 0b1111_1111 | 0 << 8);
+        tx1.write(i & 0b1111_1111 | 1 << 8);
+        tx2.write(i & 0b1111_1111 | 2 << 8);
+        tx3.write(i & 0b1111_1111 | 3 << 8);
+        i += 1;
 
-            for _ in 0..1000000 {
-                asm::nop();
-            }
-            led.toggle().ok();
-        }
-    } else {
-        info!("listening");
-        loop {
+        for _ in 0..1000000 {
             if let Some(v) = rx0.read() {
-                info!("got value from read fifo {:#?}", v);
-                led.toggle().ok();
+                info!("[0] [{}] {:#?}", v >> 8, v & 0b1111_1111);
             }
-
-            // let mut addresses = Vec::<_, 100>::new();
-
-            // while !addresses.is_full() {
-            //     addresses.push(rx0_sm.instruction_address() as i32).unwrap();
-            // }
-
-            // info!("{:?}", addresses);
+            if let Some(v) = rx1.read() {
+                info!("[1] [{}] {:#?}", v >> 8, v & 0b1111_1111);
+            }
+            if let Some(v) = rx2.read() {
+                info!("[2] [{}] {:#?}", v >> 8, v & 0b1111_1111);
+            }
+            if let Some(v) = rx3.read() {
+                info!("[3] [{}] {:#?}", v >> 8, v & 0b1111_1111);
+            }
         }
+        led.toggle().ok();
     }
 }
 

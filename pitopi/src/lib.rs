@@ -16,6 +16,7 @@ pub struct Pitopi {
     tx_pio: PIO<PIO1>,
 
     rx_program: Option<InstalledProgram<PIO0>>,
+    rx_program_023: Option<InstalledProgram<PIO0>>,
     tx_program: Option<InstalledProgram<PIO1>>,
 }
 
@@ -32,6 +33,7 @@ impl Pitopi {
             rx_pio,
             tx_pio,
             rx_program: None,
+            rx_program_023: None,
             tx_program: None,
         }
     }
@@ -42,11 +44,16 @@ impl Pitopi {
 
         let pitopi_rx_program = pio_file!("src/programs.pio", select_program("pitopi_rx")).program;
         self.rx_program = Some(self.rx_pio.install(&pitopi_rx_program).unwrap());
+
+        let pitopi_rx_program_023 =
+            pio_file!("src/programs.pio", select_program("pitopi_rx_023")).program;
+        self.rx_program_023 = Some(self.rx_pio.install(&pitopi_rx_program_023).unwrap());
     }
 
     #[allow(clippy::too_many_arguments)]
     pub fn setup_link<RXSM, TXSM>(
         &mut self,
+        link_config: LinkConfig,
         rx_sm: UninitStateMachine<(PIO0, RXSM)>,
         rx_data_pin: Pin<DynPinId, FunctionPio0, PullDown>,
         rx_clk_pin: Pin<DynPinId, FunctionPio0, PullDown>,
@@ -66,13 +73,20 @@ impl Pitopi {
         // Also, the tx word and clk pin must be consecutive in that order (if the default TX program is used and not the mirrored)
         // assert_eq!(tx_word_pin.id().num + 1, tx_clk_pin.id().num);
 
-        let Some(rx_program) = self.rx_program.as_mut() else {
+        let rx_program = match link_config.rx_program {
+            RxProgram::Consecutive => &mut self.rx_program,
+            RxProgram::P023 => &mut self.rx_program_023,
+        };
+
+        let Some(rx_program) = rx_program.as_mut() else {
             return Err(PitopiError::RxProgramNotInstalled);
         };
 
+        let rx_base_pin = rx_data_pin.id().num;
+
         let (mut rx_sm, rx_fifo, _) =
             PIOBuilder::from_installed_program(unsafe { rx_program.share() })
-                .in_pin_base(rx_data_pin.id().num)
+                .in_pin_base(rx_base_pin)
                 .clock_divisor_fixed_point(1, 0)
                 .build(rx_sm);
 
@@ -81,6 +95,25 @@ impl Pitopi {
             (rx_word_pin.id().num, PinDir::Input),
             (rx_clk_pin.id().num, PinDir::Input),
         ]);
+
+        match link_config.rx_program {
+            RxProgram::Consecutive => {
+                defmt::info!(
+                    "cons | setting up link, computed pins:\ndata = gpio{}\nword = gpio{}\nclk  = gpio{}",
+                    rx_base_pin,
+                    rx_base_pin + 1,
+                    rx_base_pin + 2
+                );
+            }
+            RxProgram::P023 => {
+                defmt::info!(
+                    "p023 | setting up link, computed pins:\ndata = gpio{}\nword = gpio{}\nclk  = gpio{}",
+                    rx_base_pin,
+                    rx_base_pin + 2,
+                    rx_base_pin + 3
+                );
+            }
+        }
 
         let rx_sm = rx_sm.start();
 
@@ -124,6 +157,20 @@ impl Pitopi {
     pub fn free(self) -> (PIO<PIO0>, PIO<PIO1>) {
         (self.rx_pio, self.tx_pio)
     }
+}
+
+pub struct LinkConfig {
+    pub rx_program: RxProgram,
+    pub tx_program: TxProgram,
+}
+
+pub enum RxProgram {
+    Consecutive,
+    P023,
+}
+
+pub enum TxProgram {
+    SidesetWC,
 }
 
 #[derive(Debug)]

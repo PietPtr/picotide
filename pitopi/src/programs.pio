@@ -44,6 +44,19 @@ tx:
     push iffull noblock
 .wrap
 
+; Offset version for non-consecutive pins like [p, p + 2, p + 3]
+; pin 0: data, since the `in pins` instruction shifts one bit of data in the word.
+; pin 2: word designator
+; pin 3: clock
+.program pitopi_rx_023
+.wrap_target
+    wait 1 pin 2            ; make sure the word line is high while reading a word
+    wait 1 pin 3
+    wait 0 pin 3            ; wait until a falling edge on clocks
+    in pins, 1              ; and shift in whatever is on the input
+    push iffull noblock
+.wrap
+
 ; TODO: enable autopull / autopush?
 
 .program toggle_pin
