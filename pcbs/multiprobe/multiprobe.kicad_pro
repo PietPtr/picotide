@@ -466,7 +466,7 @@
       "gencad": "",
       "idf": "",
       "netlist": "",
-      "plot": "gerber/",
+      "plot": "gerbers",
       "pos_files": "",
       "specctra_dsn": "../../../../../../../tmp/multiprobe.dsn",
       "step": "",
