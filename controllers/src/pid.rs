@@ -21,11 +21,11 @@ impl PidControl {
         }
     }
 
-    pub fn run(&mut self, setpoint: I16F16, measurement: I16F16) -> I16F16 {
-        let error = setpoint - measurement;
+    pub fn run(&mut self, setpoint: I16F16, measurement: I16F16) -> Option<I16F16> {
+        let error = setpoint.checked_sub(measurement)?;
 
-        self.integral += error;
-        let derivative = error - self.previous_error;
+        self.integral = self.integral.saturating_add(error);
+        let derivative = error.saturating_sub(self.previous_error);
 
         let proportional = self.k.kp.saturating_mul(error);
         let integral = self.k.ki.saturating_mul(self.integral);
@@ -37,6 +37,6 @@ impl PidControl {
 
         self.previous_error = error;
 
-        output
+        Some(output)
     }
 }

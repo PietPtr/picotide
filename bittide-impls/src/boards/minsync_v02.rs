@@ -17,15 +17,7 @@ use crate::chips::{self, rp2040::Rp2040Links};
 pub const BUFFER_SIZE: usize = 64; // TODO: buffer size at compile time is inconvenient for fast iteration, what else can we use?
 
 pub type Control = BittideChannelControl<
-    Si5351Controller<
-        I2C<
-            I2C1,
-            (
-                Pin<Gpio14, FunctionI2c, PullUp>,
-                Pin<Gpio15, FunctionI2c, PullUp>,
-            ),
-        >,
-    >,
+    Si5351Controller<si5351::Si5351Device<minsync::clocks::SiI2C>>,
     BUFFER_SIZE,
     Rp2040Links,
     4,
@@ -148,7 +140,7 @@ pub struct MinsyncV02 {}
 impl MinsyncV02 {
     pub fn setup(
         link_mask: [bool; 4],
-        frequency_controller: Si5351Controller<minsync::clocks::SiI2C>,
+        frequency_controller: Si5351Controller<si5351::Si5351Device<minsync::clocks::SiI2C>>,
         pins: MinsyncLinkPins,
         pio0: PIO0,
         pio1: PIO1,

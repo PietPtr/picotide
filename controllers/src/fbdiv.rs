@@ -84,7 +84,8 @@ impl<const B: usize> FrequencyController<B> for FbdivController {
 
         let adjust = self
             .pid
-            .run(I16F16::from_num(half_full), I16F16::from_num(total_level));
+            .run(I16F16::from_num(half_full), I16F16::from_num(total_level))
+            .ok_or(())?;
 
         self.fbdiv_internal = self.fbdiv_internal.saturating_sub(adjust);
 

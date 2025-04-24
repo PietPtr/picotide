@@ -14,3 +14,4 @@ bittide = { path = "../bittide" }
 cortex-m = "0.7"
 minsync = { version = "0.1.0", path = "../minsync" }
 pitopi = { version = "0.1.0", path = "../pitopi" }
+si5351 = "0.2.0"

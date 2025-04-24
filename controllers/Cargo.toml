@@ -12,3 +12,10 @@ heapless = { version = "0.8.0", features = ["defmt-03"] }
 defmt = "0.3.5"
 embedded-hal = { version = "0.2.7", features = ["unproven"] }
 si5351 = "0.2.0"
+log = "0.4.27"
+
+[dev-dependencies]
+tracing = "0.1.41"
+# env_logger = "0.11.8"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+# pretty_env_logger = "0.5.0"
